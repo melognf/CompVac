@@ -67,6 +67,22 @@ select.ifield{cursor:pointer}
 .cdot{width:44px;height:44px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:transform .15s,border-color .15s}
 .cdot.sel{border-color:#fff;transform:scale(1.12)}
 
+/* ── PHOTO PREVIEW (en formulario crear/editar perfil) ── */
+.photo-preview{width:96px;height:96px;border-radius:50%;background:var(--card);border:2px dashed var(--card-b);position:relative;cursor:pointer;overflow:hidden;display:flex;align-items:center;justify-content:center;transition:border-color .2s,transform .15s}
+.photo-preview:active{transform:scale(.97)}
+.photo-preview:hover{border-color:var(--gold)}
+.photo-preview img{width:100%;height:100%;object-fit:cover}
+.photo-letter{font-size:36px;font-weight:800;color:var(--text2)}
+.photo-edit-badge{position:absolute;bottom:0;right:0;width:28px;height:28px;background:var(--gold);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid var(--bg)}
+
+/* ── AVATAR con imagen ── */
+.avatar{position:relative;overflow:hidden}
+.avatar img{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0}
+.m-av{position:relative;overflow:hidden}
+.m-av img{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0}
+.li-icon{position:relative;overflow:hidden}
+.li-icon img{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0}
+
 /* ── HEADER ── */
 .app-header{padding:16px 20px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
 .hdr-l{display:flex;flex-direction:column}
@@ -241,7 +257,7 @@ select.ifield{cursor:pointer}
   </div>
 </div>
 
-<!-- ═══ SCREEN: LOGIN ═══ -->
+<!-- ═══ SCREEN: LOGIN (Crear perfil — solo primera vez) ═══ -->
 <div id="screen-login" class="screen active">
   <div style="display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:8px">
     <div style="font-size:48px">📅</div>
@@ -249,30 +265,27 @@ select.ifield{cursor:pointer}
     <div style="font-size:13px;color:var(--text2);text-align:center">Compensatorios y vacaciones del equipo</div>
   </div>
 
-  <!-- Returning user -->
-  <div id="returning-user" style="display:none;background:var(--card);border:1px solid var(--card-b);border-radius:14px;padding:16px;margin-bottom:16px">
-    <div style="font-size:12px;color:var(--text2);margin-bottom:10px;font-weight:600">CONTINUAR COMO</div>
-    <div style="display:flex;align-items:center;gap:12px">
-      <div id="ret-av" class="avatar" style="width:48px;height:48px;font-size:20px"></div>
-      <div style="flex:1">
-        <div id="ret-name" style="font-size:16px;font-weight:700"></div>
-        <div style="font-size:12px;color:var(--text2);margin-top:2px">Último acceso registrado</div>
-      </div>
-      <button class="btn btn-gold btn-sm" onclick="continueAsUser()">Entrar</button>
-    </div>
+  <div style="background:rgba(75,159,255,0.08);border:1px solid rgba(75,159,255,0.25);border-radius:12px;padding:11px 14px;font-size:13px;color:var(--blue);line-height:1.55">
+    👋 ¡Bienvenido! Esta es la primera vez que entrás. Creá tu perfil — vas a usar este dispositivo siempre.
   </div>
 
   <div class="form-stack" id="new-user-form">
-    <div style="font-size:13px;color:var(--text2);font-weight:600" id="or-label">O INGRESÁ TU NOMBRE</div>
-    <div class="ig"><span class="lbl">Nombre y apellido</span><input class="ifield" id="login-name" placeholder="Ej: Juan Pérez" autocomplete="off"></div>
+    <!-- Foto opcional -->
+    <div class="ig" style="align-items:center">
+      <div id="photo-preview" class="photo-preview" onclick="document.getElementById('photo-input').click()">
+        <div class="photo-letter" id="photo-letter">?</div>
+        <div class="photo-edit-badge">📷</div>
+      </div>
+      <input type="file" id="photo-input" accept="image/*" capture="user" style="display:none" onchange="handlePhotoSelect(event)">
+      <div style="font-size:11px;color:var(--text3);margin-top:6px">Tocá para agregar foto (opcional)</div>
+    </div>
+
+    <div class="ig"><span class="lbl">Nombre y apellido</span><input class="ifield" id="login-name" placeholder="Ej: Juan Pérez" autocomplete="off" oninput="updatePhotoLetter()"></div>
     <div class="ig">
       <span class="lbl">Elegí tu color</span>
       <div class="color-grid" id="colorPicker"></div>
     </div>
-    <button class="btn btn-gold" onclick="doLogin()">Entrar →</button>
-    <button class="btn btn-ghost" onclick="openAdminLogin()" style="display:flex;align-items:center;justify-content:center;gap:7px">
-      <span style="font-size:17px">👑</span> Entrar como administrador
-    </button>
+    <button class="btn btn-gold" onclick="doLogin()">Crear mi perfil →</button>
   </div>
 </div>
 
@@ -421,9 +434,9 @@ select.ifield{cursor:pointer}
 <div class="modal-ov" id="modal-admin">
   <div class="modal-sheet">
     <div class="m-handle"></div>
-    <div class="m-title">👑 Acceso administrador</div>
-    <div style="background:rgba(240,180,41,0.08);border:1px solid rgba(240,180,41,0.25);border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:13px">
-      Vas a entrar como <strong id="admin-as-name" style="color:var(--gold)">Administrador</strong>
+    <div class="m-title">👑 Modo administrador</div>
+    <div style="background:rgba(240,180,41,0.08);border:1px solid rgba(240,180,41,0.25);border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:13px;color:var(--text2);line-height:1.55">
+      Activá modo administrador para poder autorizar compensatorios del equipo. Podés desactivarlo cuando quieras.
     </div>
     <div class="form-stack">
       <div class="ig">
@@ -433,7 +446,7 @@ select.ifield{cursor:pointer}
     </div>
     <div class="m-actions">
       <button class="btn btn-ghost" onclick="closeModal('modal-admin')">Cancelar</button>
-      <button class="btn btn-gold" onclick="confirmAdminLogin()">Entrar →</button>
+      <button class="btn btn-gold" onclick="confirmAdminLogin()">Activar →</button>
     </div>
   </div>
 </div>
@@ -445,13 +458,48 @@ select.ifield{cursor:pointer}
     <div class="m-title">Mi perfil</div>
     <div style="display:flex;align-items:center;gap:13px;background:var(--card);border-radius:14px;padding:14px;margin-bottom:18px">
       <div id="um-av" class="avatar" style="width:52px;height:52px;font-size:22px"></div>
-      <div>
+      <div style="flex:1;min-width:0">
         <div id="um-name" style="font-size:17px;font-weight:800"></div>
-        <div id="um-id" style="font-size:11px;color:var(--text3);margin-top:3px"></div>
+        <div id="um-role" style="font-size:11px;color:var(--text3);margin-top:3px"></div>
       </div>
     </div>
     <div style="display:flex;flex-direction:column;gap:9px">
-      <button class="btn btn-ghost" onclick="closeModal('modal-user');showScreen('screen-login')">↩ Cambiar usuario</button>
+      <button class="btn btn-ghost" onclick="closeModal('modal-user');openEditProfile()" style="display:flex;align-items:center;justify-content:center;gap:7px">
+        ✏️ Editar mi perfil
+      </button>
+      <button class="btn btn-ghost" id="btn-admin-toggle" onclick="closeModal('modal-user');toggleAdminMode()" style="display:flex;align-items:center;justify-content:center;gap:7px">
+        👑 Activar modo administrador
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Editar Perfil ═══ -->
+<div class="modal-ov" id="modal-edit-profile">
+  <div class="modal-sheet">
+    <div class="m-handle"></div>
+    <div class="m-title">✏️ Editar mi perfil</div>
+    <div class="form-stack">
+      <div class="ig" style="align-items:center">
+        <div id="ep-photo-preview" class="photo-preview" onclick="document.getElementById('ep-photo-input').click()">
+          <div class="photo-letter" id="ep-photo-letter">?</div>
+          <div class="photo-edit-badge">📷</div>
+        </div>
+        <input type="file" id="ep-photo-input" accept="image/*" capture="user" style="display:none" onchange="handleEditPhotoSelect(event)">
+        <div style="display:flex;gap:8px;margin-top:8px">
+          <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('ep-photo-input').click()">Cambiar foto</button>
+          <button type="button" class="btn btn-ghost btn-sm" onclick="removeEditPhoto()" id="ep-remove-photo" style="display:none">Quitar</button>
+        </div>
+      </div>
+      <div class="ig"><span class="lbl">Nombre y apellido</span><input class="ifield" id="ep-name" autocomplete="off" oninput="updateEditPhotoLetter()"></div>
+      <div class="ig">
+        <span class="lbl">Color</span>
+        <div class="color-grid" id="ep-colorPicker"></div>
+      </div>
+    </div>
+    <div class="m-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-edit-profile')">Cancelar</button>
+      <button class="btn btn-gold" onclick="saveProfile()">Guardar</button>
     </div>
   </div>
 </div>
@@ -499,9 +547,7 @@ let pendingAuth = null;  // {uid, id, type, path}
 //  BOOT
 // ══════════════════════════════════════════
 async function boot() {
-  const user = lsGet('user');
-
-  // Si DEFAULT_CONFIG está completo, lo usamos directo; sino caemos al setup manual (modo dev)
+  // Config Firebase
   let fbCfg;
   if (DEFAULT_CONFIG.apiKey) {
     fbCfg = DEFAULT_CONFIG;
@@ -511,37 +557,32 @@ async function boot() {
     if (!stored) { showScreen('screen-firebase'); return; }
     fbCfg = JSON.parse(stored);
   }
-
   if (!connectFirebase(fbCfg)) return;
 
-  // Anonymous Auth: garantiza un UID verificable por dispositivo
+  // Auth anónima — garantiza un UID verificable por dispositivo
   const authUser = await ensureAuth();
   if (!authUser) {
-    toast('No se pudo autenticar. Revisá Anonymous Auth en Firebase.', 'e');
-    showScreen('screen-firebase');
+    toast('No se pudo autenticar. Verificá Anonymous Auth en Firebase.', 'e');
     return;
   }
 
-  buildColorPicker();
-
-  if (user) {
-    const u = JSON.parse(user);
-    // Migrar a UID de auth si difiere (cuentas creadas antes de habilitar auth)
+  const stored = lsGet('user');
+  if (stored) {
+    // Usuario ya existe en este dispositivo → entrada directa
+    const u = JSON.parse(stored);
     if (u.uid !== authUser.uid) {
       u.uid = authUser.uid;
       lsSet('uid', authUser.uid);
       lsSet('user', JSON.stringify(u));
     }
-    const retEl = document.getElementById('returning-user');
-    retEl.style.display = 'block';
-    document.getElementById('or-label').textContent = 'O INGRESÁ COMO OTRA PERSONA';
-    document.getElementById('ret-name').textContent = u.name;
-    const av = document.getElementById('ret-av');
-    av.style.background = u.color;
-    av.textContent = u.name.charAt(0).toUpperCase();
+    me = u;
+    if (me.uid) db.ref(`users/${me.uid}`).update({ name: me.name, color: me.color, photo: me.photo || null, ts: Date.now() });
+    enterApp();
+  } else {
+    // Primera vez → pantalla de crear perfil
+    buildColorPicker();
+    showScreen('screen-login');
   }
-
-  showScreen('screen-login');
 }
 
 function ensureAuth() {
@@ -559,22 +600,6 @@ function ensureAuth() {
   });
 }
 
-function continueAsUser() {
-  const u = JSON.parse(lsGet('user'));
-  const authUid = firebase.auth().currentUser?.uid;
-  if (authUid && u.uid !== authUid) {
-    u.uid = authUid;
-    lsSet('user', JSON.stringify(u));
-  }
-  me = u;
-  // Re-sincronizar usuario y rol en Firebase según lo guardado localmente
-  if (me.uid) {
-    db.ref(`users/${me.uid}`).set({ name: me.name, color: me.color, ts: Date.now() });
-    if (me.isAdmin) db.ref(`admins/${me.uid}`).set(true);
-    else            db.ref(`admins/${me.uid}`).remove();
-  }
-  enterApp();
-}
 
 // ══════════════════════════════════════════
 //  FIREBASE
@@ -632,9 +657,10 @@ function pickColor(c, el) {
   el.classList.add('sel');
 }
 
-function doLogin() { doLoginAs(false); }
+// ── Login (crear perfil — solo primera vez) ──
+let pendingPhoto = null; // base64 de la foto cargada en el formulario
 
-function doLoginAs(isAdmin) {
+function doLogin() {
   const name = v('login-name').trim();
   if (!name) { toast('Ingresá tu nombre', 'e'); return; }
 
@@ -642,21 +668,133 @@ function doLoginAs(isAdmin) {
   if (!uid) { toast('Sin autenticar — recargá la página', 'e'); return; }
   lsSet('uid', uid);
 
-  me = { uid, name, color: selColor, isAdmin };
+  me = { uid, name, color: selColor, photo: pendingPhoto, isAdmin: false };
   lsSet('user', JSON.stringify(me));
 
-  db.ref(`users/${uid}`).set({ name, color: selColor, ts: Date.now() });
-  // Cada login define explícitamente el rol: entrar normal te saca de admins, entrar admin te agrega
-  if (isAdmin) db.ref(`admins/${uid}`).set(true);
-  else         db.ref(`admins/${uid}`).remove();
+  const record = { name, color: selColor, ts: Date.now() };
+  if (pendingPhoto) record.photo = pendingPhoto;
+  db.ref(`users/${uid}`).set(record);
+  pendingPhoto = null;
   enterApp();
 }
 
-function openAdminLogin() {
+// ── Foto: handlers para crear perfil ──
+async function handlePhotoSelect(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  try {
+    const dataUrl = await processImage(file);
+    pendingPhoto = dataUrl;
+    const preview = document.getElementById('photo-preview');
+    preview.innerHTML = `<img src="${dataUrl}" alt="preview"><div class="photo-edit-badge">📷</div>`;
+  } catch (e) {
+    toast('No se pudo procesar la imagen: ' + e.message, 'e');
+  }
+}
+
+function updatePhotoLetter() {
+  if (pendingPhoto) return; // si hay foto, no mostrar letra
+  const name = v('login-name').trim();
+  const letter = name ? name.charAt(0).toUpperCase() : '?';
+  const el = document.getElementById('photo-letter');
+  if (el) el.textContent = letter;
+}
+
+// ── Edit profile ──
+let editPhoto = null;       // foto nueva (si cambió)
+let editPhotoChanged = false;
+
+function openEditProfile() {
+  if (!me) return;
+  // Construir color picker del modal
+  document.getElementById('ep-colorPicker').innerHTML = COLORS.map(c =>
+    `<div class="cdot${c===me.color?' sel':''}" style="background:${c}" onclick="pickEditColor('${c}',this)"></div>`
+  ).join('');
+  selColor = me.color; // reset al actual
+
+  document.getElementById('ep-name').value = me.name;
+
+  // Preview de foto
+  editPhoto = me.photo || null;
+  editPhotoChanged = false;
+  renderEditPhotoPreview();
+
+  openModal('modal-edit-profile');
+}
+
+function pickEditColor(c, el) {
+  selColor = c;
+  document.querySelectorAll('#ep-colorPicker .cdot').forEach(d => d.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+async function handleEditPhotoSelect(event) {
+  const file = event.target.files?.[0];
+  if (!file) return;
+  try {
+    editPhoto = await processImage(file);
+    editPhotoChanged = true;
+    renderEditPhotoPreview();
+  } catch (e) {
+    toast('No se pudo procesar la imagen: ' + e.message, 'e');
+  }
+}
+
+function removeEditPhoto() {
+  editPhoto = null;
+  editPhotoChanged = true;
+  renderEditPhotoPreview();
+}
+
+function renderEditPhotoPreview() {
+  const wrap = document.getElementById('ep-photo-preview');
+  const rmBtn = document.getElementById('ep-remove-photo');
+  if (editPhoto) {
+    wrap.innerHTML = `<img src="${editPhoto}" alt="preview"><div class="photo-edit-badge">📷</div>`;
+    rmBtn.style.display = '';
+  } else {
+    const name = v('ep-name').trim() || me?.name || '?';
+    wrap.innerHTML = `<div class="photo-letter" id="ep-photo-letter">${name.charAt(0).toUpperCase()}</div><div class="photo-edit-badge">📷</div>`;
+    rmBtn.style.display = 'none';
+  }
+}
+
+function updateEditPhotoLetter() {
+  if (editPhoto) return;
+  renderEditPhotoPreview();
+}
+
+function saveProfile() {
+  const name = v('ep-name').trim();
+  if (!name) { toast('El nombre no puede estar vacío', 'e'); return; }
+
+  me.name  = name;
+  me.color = selColor;
+  if (editPhotoChanged) me.photo = editPhoto;
+  lsSet('user', JSON.stringify(me));
+
+  const update = { name, color: selColor, ts: Date.now() };
+  if (editPhotoChanged) update.photo = editPhoto || null;
+  db.ref(`users/${me.uid}`).update(update).then(() => {
+    closeModal('modal-edit-profile');
+    toast('Perfil actualizado ✓', 's');
+    updateHeader();
+  });
+}
+
+// ── Admin toggle (reemplaza el flujo de login admin) ──
+function toggleAdminMode() {
+  if (me?.isAdmin) {
+    if (!confirm('¿Desactivar modo administrador?')) return;
+    me.isAdmin = false;
+    lsSet('user', JSON.stringify(me));
+    db.ref(`admins/${me.uid}`).remove();
+    toast('Modo administrador desactivado', 's');
+    updateHeader();
+    return;
+  }
+  // Activar: pedir código
   document.getElementById('admin-code-input').value = '';
-  // Mostrar el nombre con el que va a entrar
-  const lbl = document.getElementById('admin-as-name');
-  if (lbl) lbl.textContent = bossName || 'Administrador';
   openModal('modal-admin');
   setTimeout(() => document.getElementById('admin-code-input').focus(), 250);
 }
@@ -667,16 +805,45 @@ function confirmAdminLogin() {
   if (code !== adminCode) { toast('Código incorrecto', 'e'); return; }
   closeModal('modal-admin');
 
-  const uid = firebase.auth().currentUser?.uid;
-  if (!uid) { toast('Sin autenticar — recargá la página', 'e'); return; }
-  lsSet('uid', uid);
-
-  me = { uid, name: bossName || 'Administrador', color: '#F0B429', isAdmin: true };
+  if (!me) return;
+  me.isAdmin = true;
   lsSet('user', JSON.stringify(me));
+  db.ref(`admins/${me.uid}`).set(true);
+  toast('Modo administrador activado 👑', 's');
+  updateHeader();
+}
 
-  db.ref(`users/${uid}`).set({ name: me.name, color: me.color, ts: Date.now() });
-  db.ref(`admins/${uid}`).set(true);
-  enterApp();
+// ── Procesar imagen: resize + compress + base64 ──
+function processImage(file) {
+  return new Promise((resolve, reject) => {
+    if (!file.type.startsWith('image/')) return reject(new Error('No es una imagen'));
+    if (file.size > 10 * 1024 * 1024) return reject(new Error('Imagen muy grande (max 10MB)'));
+
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 256;
+        let { width, height } = img;
+        if (width > height) {
+          if (width > MAX) { height *= MAX / width; width = MAX; }
+        } else {
+          if (height > MAX) { width *= MAX / height; height = MAX; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width; canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        // JPEG con calidad 0.8 — balance peso/calidad
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        resolve(dataUrl);
+      };
+      img.onerror = () => reject(new Error('Imagen inválida'));
+      img.src = e.target.result;
+    };
+    reader.onerror = () => reject(new Error('No se pudo leer el archivo'));
+    reader.readAsDataURL(file);
+  });
 }
 
 function enterApp() {
@@ -730,10 +897,20 @@ function updateHeader() {
   if (!me) return;
   const h = now.getHours();
   document.getElementById('hdr-greet').textContent = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
-  document.getElementById('hdr-name').textContent  = me.name.split(' ')[0];
+  document.getElementById('hdr-name').textContent  = me.name.split(' ')[0] + (me.isAdmin ? ' 👑' : '');
   const av = document.getElementById('hdr-av');
-  av.style.background = me.color;
-  av.textContent = me.name.charAt(0).toUpperCase();
+  renderAvatar(av, me);
+}
+
+// Pinta un avatar (foto o letra) en un elemento existente
+function renderAvatar(el, user) {
+  if (!el || !user) return;
+  el.style.background = user.color || '#888';
+  if (user.photo) {
+    el.innerHTML = `<img src="${user.photo}" alt="">`;
+  } else {
+    el.innerHTML = (user.name || '?').charAt(0).toUpperCase();
+  }
 }
 
 // ══════════════════════════════════════════
@@ -1043,8 +1220,9 @@ function renderCompAdmin(el, title) {
     let act = '';
     if (c.status === 'requested')
       act = `<button class="ico-btn" title="Autorizar / Denegar" onclick="openAuth('${c.uid}','${c.id}','comp')">✅</button>`;
+    const iconInner = u.photo ? `<img src="${u.photo}" alt="">` : u.name.charAt(0).toUpperCase();
     return `<div class="li">
-      <div class="li-icon" style="background:${u.color}22;color:${u.color};font-weight:800">${u.name.charAt(0).toUpperCase()}</div>
+      <div class="li-icon" style="background:${u.color}22;color:${u.color};font-weight:800">${iconInner}</div>
       <div class="li-info">
         <div class="li-date">${u.name} <span style="color:var(--text3);font-weight:500">· ${fmt(c.generatedDate)}</span></div>
         <div class="li-desc">${c.reason || 'Sin descripción'}</div>
@@ -1158,8 +1336,9 @@ function renderTeam() {
     const pendComp  = compList.filter(c => c.status === 'requested').length;
     const isMe      = uid === me?.uid;
     const isAdmin = !!allAdmins[uid];
+    const avatarInner = u.photo ? `<img src="${u.photo}" alt="">` : u.name.charAt(0).toUpperCase();
     return `<div class="member-card">
-      <div class="m-av" style="background:${u.color}">${u.name.charAt(0).toUpperCase()}</div>
+      <div class="m-av" style="background:${u.color}">${avatarInner}</div>
       <div class="m-info">
         <div class="m-name">${u.name}${isAdmin?' 👑':''}${isMe?' <span style="font-size:10px;color:var(--text3)">(yo)</span>':''}</div>
         <div class="m-status">${authComp}/${compList.length} comp. autorizados · ${vacList.length} vac.${pendComp?' · <span style="color:var(--blue)">'+pendComp+' pendiente(s)</span>':''}</div>
@@ -1245,10 +1424,16 @@ document.getElementById('modal-user').addEventListener('click', function(e) {
 });
 function showUserMenuData() {
   if (!me) return;
-  document.getElementById('um-av').style.background = me.color;
-  document.getElementById('um-av').textContent = me.name.charAt(0).toUpperCase();
+  renderAvatar(document.getElementById('um-av'), me);
   document.getElementById('um-name').textContent = me.name + (me.isAdmin ? ' 👑' : '');
-  document.getElementById('um-id').textContent   = (me.isAdmin ? 'Administrador · ' : '') + 'ID: ' + me.uid.slice(0, 10) + '…';
+  document.getElementById('um-role').textContent = me.isAdmin ? 'Administrador' : 'Usuario';
+  // Botón admin: cambia texto según estado
+  const btn = document.getElementById('btn-admin-toggle');
+  if (btn) {
+    btn.innerHTML = me.isAdmin
+      ? '🔓 Desactivar modo administrador'
+      : '👑 Activar modo administrador';
+  }
 }
 
 // ══════════════════════════════════════════

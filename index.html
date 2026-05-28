@@ -441,11 +441,14 @@ select.ifield{cursor:pointer}
 </div>
 </div><!-- #app -->
 
-<!-- ═══ MODAL: Add Compensatorio ═══ -->
+<!-- ═══ MODAL: Solicitar compensatorio (flujo directo) ═══ -->
 <div class="modal-ov" id="modal-comp">
   <div class="modal-sheet">
     <div class="m-handle"></div>
-    <div class="m-title">Cargar Compensatorio</div>
+    <div class="m-title">📅 Solicitar día directo</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.5">
+      Cargá el día que querés tomar. Después lo solicitás por WhatsApp al jefe.
+    </div>
     <div class="form-stack">
       <div class="ig"><span class="lbl">Día que querés tomar</span><input class="ifield" type="date" id="mc-date"></div>
       <div class="ig"><span class="lbl">Motivo (opcional)</span><input class="ifield" id="mc-reason" placeholder="Ej: Trabajé el sábado pasado"></div>
@@ -453,6 +456,44 @@ select.ifield{cursor:pointer}
     <div class="m-actions">
       <button class="btn btn-ghost" onclick="closeModal('modal-comp')">Cancelar</button>
       <button class="btn btn-gold" onclick="saveComp()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Agregar al banco ═══ -->
+<div class="modal-ov" id="modal-bank-add">
+  <div class="modal-sheet">
+    <div class="m-handle"></div>
+    <div class="m-title">🏦 Agregar al banco</div>
+    <div style="font-size:12px;color:var(--text2);margin-bottom:14px;line-height:1.5">
+      Cargá un compensatorio que ya generaste (un día que trabajaste extra). Queda en tu banco para solicitarlo cuando quieras.
+    </div>
+    <div class="form-stack">
+      <div class="ig"><span class="lbl">Día que generaste el compensatorio</span><input class="ifield" type="date" id="mba-date"></div>
+      <div class="ig"><span class="lbl">Motivo (opcional)</span><input class="ifield" id="mba-reason" placeholder="Ej: Trabajé el sábado 15/05"></div>
+    </div>
+    <div class="m-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-bank-add')">Cancelar</button>
+      <button class="btn btn-gold" onclick="saveBankComp()">Agregar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Solicitar desde banco ═══ -->
+<div class="modal-ov" id="modal-bank-use">
+  <div class="modal-sheet">
+    <div class="m-handle"></div>
+    <div class="m-title">📲 Solicitar día libre</div>
+    <div style="background:rgba(75,159,255,0.08);border:1px solid rgba(75,159,255,0.25);border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:13px">
+      Compensatorio generado el <strong id="bu-earned-date" style="color:var(--blue)">—</strong>
+    </div>
+    <div class="form-stack">
+      <div class="ig"><span class="lbl">Día que querés tomar</span><input class="ifield" type="date" id="bu-take-date"></div>
+      <div class="ig"><span class="lbl">Motivo (opcional)</span><input class="ifield" id="bu-reason" placeholder="Ej: Para descansar"></div>
+    </div>
+    <div class="m-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-bank-use')">Cancelar</button>
+      <button class="btn btn-gold" onclick="requestFromBank()">📲 Solicitar por WA</button>
     </div>
   </div>
 </div>
@@ -1141,6 +1182,8 @@ function dotsFor(date) {
   Object.entries(allComp).forEach(([uid, days]) => {
     if (!days) return;
     Object.values(days).forEach(d => {
+      // Solo mostrar comps que tienen fecha de uso (no los del banco)
+      if (d.status === 'available') return;
       if (d.generatedDate === date) {
         const c = allUsers[uid]?.color || '#888';
         if (!cols.includes(c)) cols.push(c);
@@ -1236,6 +1279,8 @@ function eventsFor(date) {
   Object.entries(allComp).forEach(([uid, days]) => {
     if (!days) return;
     Object.entries(days).forEach(([id, d]) => {
+      // Saltar comps del banco (sin fecha de uso)
+      if (d.status === 'available') return;
       if (d.generatedDate === date) evs.push({
         uid, id, type:'comp',
         color: allUsers[uid]?.color || '#888',
@@ -1287,6 +1332,70 @@ function saveComp() {
   });
 }
 
+// ── FLUJO BANCO ──
+
+function openAddBankComp() {
+  document.getElementById('mba-date').value   = ds(now);
+  document.getElementById('mba-reason').value = '';
+  openModal('modal-bank-add');
+}
+
+function saveBankComp() {
+  const date   = document.getElementById('mba-date').value;
+  const reason = document.getElementById('mba-reason').value.trim();
+  if (!date) { toast('Seleccioná la fecha en que se generó', 'e'); return; }
+  if (!me) return;
+
+  db.ref(`compensatory/${me.uid}/${genId()}`).set({
+    earnedDate: date,
+    reason,
+    status: 'available',
+    createdAt: Date.now()
+  }).then(() => {
+    logActivity('comp_earned', { date, reason });
+    closeModal('modal-bank-add');
+    toast('Agregado a tu banco ✓', 's');
+  });
+}
+
+let pendingBankUse = null; // { id, comp }
+function openUseBankComp(id) {
+  const comp = allComp[me?.uid]?.[id];
+  if (!comp) return;
+  pendingBankUse = { id, comp };
+  document.getElementById('bu-earned-date').textContent = fmt(comp.earnedDate);
+  document.getElementById('bu-take-date').value = '';
+  document.getElementById('bu-reason').value = comp.reason || '';
+  openModal('modal-bank-use');
+}
+
+function requestFromBank() {
+  if (!pendingBankUse) return;
+  const { id, comp } = pendingBankUse;
+  const takeDate = document.getElementById('bu-take-date').value;
+  const reason   = document.getElementById('bu-reason').value.trim();
+  if (!takeDate) { toast('Seleccioná el día que querés tomar', 'e'); return; }
+
+  // Mensaje WA
+  const num = (bossWa || '').replace(/\D/g, '');
+  const reasonStr = reason ? ` Motivo: ${reason}.` : '';
+  const msg = `Hola ${bossName}! Soy ${me.name} y solicito tomarme el día ${fmt(takeDate)} usando un compensatorio que generé el ${fmt(comp.earnedDate)}.${reasonStr} ¡Muchas gracias!`;
+  const url = `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
+
+  db.ref(`compensatory/${me.uid}/${id}`).update({
+    generatedDate: takeDate,
+    reason,
+    status: 'requested',
+    requestedAt: Date.now()
+  }).then(() => {
+    logActivity('comp_requested', { compId: id, date: takeDate, reason, earnedDate: comp.earnedDate });
+    closeModal('modal-bank-use');
+    window.open(url, '_blank');
+    toast('Solicitado por WhatsApp ✓', 's');
+    pendingBankUse = null;
+  });
+}
+
 function openWa(uid, id) {
   const comp = allComp[uid]?.[id];
   if (!comp) return;
@@ -1319,17 +1428,35 @@ function doSendWa() {
 function cancelComp(id) {
   const c = allComp[me?.uid]?.[id];
   if (!c) return;
-  if (!confirm(`¿Cancelar el compensatorio del ${fmt(c.generatedDate)}? Se eliminará y se enviará un WhatsApp avisando al jefe.`)) return;
+
+  const fromBank = !!c.earnedDate;
+  const msgConfirm = fromBank
+    ? `¿Cancelar el pedido del ${fmt(c.generatedDate)}? El compensatorio vuelve a tu banco. Se envía WhatsApp al jefe.`
+    : `¿Cancelar el compensatorio del ${fmt(c.generatedDate)}? Se elimina y se envía WhatsApp al jefe.`;
+  if (!confirm(msgConfirm)) return;
 
   const num = (bossWa || '').replace(/\D/g, '');
   const msg = `Hola ${bossName}! Soy ${me.name}, te aviso que cancelo mi pedido de compensatorio del ${fmt(c.generatedDate)}. ¡Gracias!`;
   const url = `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
 
-  db.ref(`compensatory/${me.uid}/${id}`).remove().then(() => {
+  const after = () => {
     logActivity('comp_cancelled', { compId: id, date: c.generatedDate });
     window.open(url, '_blank');
-    toast('Cancelado y aviso enviado', 's');
-  });
+    toast(fromBank ? 'Cancelado · devuelto al banco' : 'Cancelado · eliminado', 's');
+  };
+
+  if (fromBank) {
+    // Devolver al banco: limpiar campos de uso y poner status='available'
+    db.ref(`compensatory/${me.uid}/${id}`).update({
+      generatedDate: null,
+      status: 'available',
+      requestedAt: null,
+      authorizedAt: null,
+      authorizedBy: null
+    }).then(after);
+  } else {
+    db.ref(`compensatory/${me.uid}/${id}`).remove().then(after);
+  }
 }
 
 function renderComp() {
@@ -1340,76 +1467,171 @@ function renderComp() {
   if (me.isAdmin) return renderCompAdmin(el, title);
 
   title.textContent = 'Mis compensatorios';
-  const items = Object.entries(allComp[me.uid] || {})
+  const all = Object.entries(allComp[me.uid] || {});
+
+  // Separar banco (status='available') de solicitudes (resto)
+  const bank = all
+    .filter(([id, c]) => c.status === 'available')
+    .sort((a, b) => (b[1].earnedDate || '').localeCompare(a[1].earnedDate || ''));
+  const requests = all
+    .filter(([id, c]) => c.status !== 'available')
     .sort((a, b) => (b[1].generatedDate || '').localeCompare(a[1].generatedDate || ''));
 
-  if (!items.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-ico">⏱️</div><div class="empty-txt">No tenés días compensatorios cargados.</div></div>
-      <button class="btn btn-gold" onclick="openAddComp()">+ Agregar compensatorio</button>`;
-    return;
-  }
-
-  el.innerHTML = `<div class="list-card">${items.map(([id, c]) => {
-    let act = '';
-    if (c.status === 'pending')
-      act = `<button class="ico-btn" title="Solicitar" onclick="openWa('${me.uid}','${id}')">📲</button>`;
-    const canCancel = c.status === 'requested' || c.status === 'authorized';
-    const canDelete = c.status === 'pending' || c.status === 'denied' || !c.status;
-    return `<div class="li">
-      <div class="li-icon ic">⏱️</div>
-      <div class="li-info">
-        <div class="li-date">${fmt(c.generatedDate)}</div>
-        <div class="li-desc">${c.reason || 'Sin descripción'}</div>
-      </div>
-      <div class="li-right">
-        ${badgeHtml(c.status || 'pending')}
-        ${act}
-        ${canCancel ? `<button class="ico-btn" title="Cancelar" onclick="cancelComp('${id}')">❌</button>` : ''}
-        ${canDelete ? `<button class="ico-btn" onclick="delItem('comp','${me.uid}','${id}')">🗑️</button>` : ''}
+  // ── Sección BANCO ──
+  let html = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;margin-top:4px">
+      <div style="font-size:13px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.05em">
+        🏦 Mi banco <span style="color:var(--text2);font-weight:600">(${bank.length})</span>
       </div>
     </div>`;
-  }).join('')}</div>
-  <button class="btn btn-gold" style="margin-top:4px" onclick="openAddComp()">+ Agregar compensatorio</button>`;
+
+  if (bank.length === 0) {
+    html += `<div style="background:var(--card);border:1px dashed var(--card-b);border-radius:12px;padding:18px;text-align:center;font-size:12px;color:var(--text3);margin-bottom:10px">
+      Sin compensatorios generados. Agregá uno cuando trabajes extra.
+    </div>`;
+  } else {
+    html += `<div class="list-card">${bank.map(([id, c]) => `
+      <div class="li">
+        <div class="li-icon ic">🏦</div>
+        <div class="li-info">
+          <div class="li-date">Generado el ${fmt(c.earnedDate)}</div>
+          <div class="li-desc">${c.reason || 'Sin descripción'}</div>
+        </div>
+        <div class="li-right">
+          <button class="ico-btn" title="Solicitar" onclick="openUseBankComp('${id}')" style="background:rgba(75,159,255,0.13);color:var(--blue);padding:7px 11px;border-radius:9px;font-size:12px;font-weight:700">Solicitar →</button>
+          <button class="ico-btn" onclick="delItem('comp','${me.uid}','${id}')">🗑️</button>
+        </div>
+      </div>`).join('')}</div>`;
+  }
+
+  html += `<button class="btn btn-ghost" style="margin-bottom:18px;margin-top:6px;display:flex;align-items:center;justify-content:center;gap:7px" onclick="openAddBankComp()">
+    🏦 Agregar al banco
+  </button>`;
+
+  // ── Sección SOLICITUDES ──
+  html += `<div style="font-size:13px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">
+    📅 Solicitudes <span style="color:var(--text2);font-weight:600">(${requests.length})</span>
+  </div>`;
+
+  if (requests.length === 0) {
+    html += `<div style="background:var(--card);border:1px dashed var(--card-b);border-radius:12px;padding:18px;text-align:center;font-size:12px;color:var(--text3);margin-bottom:10px">
+      No tenés solicitudes activas.
+    </div>`;
+  } else {
+    html += `<div class="list-card">${requests.map(([id, c]) => {
+      let act = '';
+      if (c.status === 'pending')
+        act = `<button class="ico-btn" title="Solicitar" onclick="openWa('${me.uid}','${id}')">📲</button>`;
+      const canCancel = c.status === 'requested' || c.status === 'authorized';
+      const canDelete = c.status === 'pending' || c.status === 'denied';
+      return `<div class="li">
+        <div class="li-icon ic">📅</div>
+        <div class="li-info">
+          <div class="li-date">Tomar ${fmt(c.generatedDate)}</div>
+          <div class="li-desc">${c.earnedDate ? `Generado ${fmt(c.earnedDate)}` : ''}${c.reason ? (c.earnedDate ? ' · ' : '') + c.reason : ''}</div>
+        </div>
+        <div class="li-right">
+          ${badgeHtml(c.status || 'pending')}
+          ${act}
+          ${canCancel ? `<button class="ico-btn" title="Cancelar" onclick="cancelComp('${id}')">❌</button>` : ''}
+          ${canDelete ? `<button class="ico-btn" onclick="delItem('comp','${me.uid}','${id}')">🗑️</button>` : ''}
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+  }
+
+  html += `<button class="btn btn-ghost" style="margin-top:6px;display:flex;align-items:center;justify-content:center;gap:7px" onclick="openAddComp()">
+    📅 Solicitar día directo (sin pasar por el banco)
+  </button>`;
+
+  el.innerHTML = html;
 }
 
 function renderCompAdmin(el, title) {
   title.textContent = 'Compensatorios del equipo';
-  // Aplanar: traer todos los comps de todos los users
-  const all = [];
+
+  // Calcular resumen por usuario: cuántos disponibles en banco, cuántas solicitudes activas
+  const summary = [];
+  Object.entries(allUsers).forEach(([uid, u]) => {
+    if (allAdmins[uid]) return; // no incluir a otros admins en el banco
+    const userComps = Object.values(allComp[uid] || {});
+    const banked  = userComps.filter(c => c.status === 'available').length;
+    const requested = userComps.filter(c => c.status === 'requested').length;
+    const authorized = userComps.filter(c => c.status === 'authorized').length;
+    summary.push({ uid, u, banked, requested, authorized });
+  });
+  summary.sort((a, b) => a.u.name.localeCompare(b.u.name));
+
+  // Lista plana de solicitudes (requested/pending) para revisar
+  const pending = [];
   Object.entries(allComp).forEach(([uid, days]) => {
     if (!days) return;
-    Object.entries(days).forEach(([id, c]) => all.push({ uid, id, ...c }));
+    Object.entries(days).forEach(([id, c]) => {
+      if (c.status === 'requested' || c.status === 'pending') pending.push({ uid, id, ...c });
+    });
   });
-  // Ordenar: primero los que requieren acción (requested), después por fecha
-  const order = { requested: 0, pending: 1, authorized: 2, denied: 3 };
-  all.sort((a, b) => {
-    const o = (order[a.status] ?? 9) - (order[b.status] ?? 9);
-    return o !== 0 ? o : (b.generatedDate || '').localeCompare(a.generatedDate || '');
-  });
+  pending.sort((a, b) => (b.requestedAt || b.createdAt || 0) - (a.requestedAt || a.createdAt || 0));
 
-  if (!all.length) {
-    el.innerHTML = `<div class="empty"><div class="empty-ico">⏱️</div><div class="empty-txt">Nadie del equipo cargó compensatorios todavía.</div></div>`;
-    return;
+  // ── Sección BANCO DEL EQUIPO ──
+  let html = `<div style="font-size:13px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">
+    🏦 Banco del equipo
+  </div>`;
+
+  if (!summary.length) {
+    html += `<div style="background:var(--card);border:1px dashed var(--card-b);border-radius:12px;padding:18px;text-align:center;font-size:12px;color:var(--text3);margin-bottom:18px">
+      No hay usuarios cargados todavía.
+    </div>`;
+  } else {
+    html += `<div class="list-card" style="margin-bottom:18px">${summary.map(s => {
+      const iconInner = s.u.photo ? `<img src="${s.u.photo}" alt="">` : s.u.name.charAt(0).toUpperCase();
+      return `<div class="li">
+        <div class="li-icon" style="background:${s.u.color}22;color:${s.u.color};font-weight:800">${iconInner}</div>
+        <div class="li-info">
+          <div class="li-date">${s.u.name}</div>
+          <div class="li-desc">
+            <span style="color:${s.banked>0?'var(--gold)':'var(--text3)'};font-weight:700">${s.banked}</span> en banco ·
+            <span style="color:${s.requested>0?'var(--blue)':'var(--text3)'};font-weight:700">${s.requested}</span> solicitud${s.requested===1?'':'es'} ·
+            <span style="color:var(--text3)">${s.authorized} usadas</span>
+          </div>
+        </div>
+        <div class="li-right">
+          <div style="font-size:22px;font-weight:900;color:${s.banked>0?'var(--gold)':'var(--text3)'};min-width:34px;text-align:center">${s.banked}</div>
+        </div>
+      </div>`;
+    }).join('')}</div>`;
   }
 
-  el.innerHTML = `<div class="list-card">${all.map(c => {
-    const u = allUsers[c.uid] || { name: 'Usuario', color: '#888' };
-    let act = '';
-    if (c.status === 'requested')
-      act = `<button class="ico-btn" title="Autorizar / Denegar" onclick="openAuth('${c.uid}','${c.id}','comp')">✅</button>`;
-    const iconInner = u.photo ? `<img src="${u.photo}" alt="">` : u.name.charAt(0).toUpperCase();
-    return `<div class="li">
-      <div class="li-icon" style="background:${u.color}22;color:${u.color};font-weight:800">${iconInner}</div>
-      <div class="li-info">
-        <div class="li-date">${u.name} <span style="color:var(--text3);font-weight:500">· ${fmt(c.generatedDate)}</span></div>
-        <div class="li-desc">${c.reason || 'Sin descripción'}</div>
-      </div>
-      <div class="li-right">
-        ${badgeHtml(c.status || 'pending')}
-        ${act}
-      </div>
+  // ── Sección SOLICITUDES PENDIENTES ──
+  html += `<div style="font-size:13px;font-weight:700;color:var(--gold);text-transform:uppercase;letter-spacing:.05em;margin-bottom:8px">
+    📅 Solicitudes <span style="color:var(--text2);font-weight:600">(${pending.length})</span>
+  </div>`;
+
+  if (!pending.length) {
+    html += `<div style="background:var(--card);border:1px dashed var(--card-b);border-radius:12px;padding:18px;text-align:center;font-size:12px;color:var(--text3)">
+      Sin solicitudes pendientes.
     </div>`;
-  }).join('')}</div>`;
+  } else {
+    html += `<div class="list-card">${pending.map(c => {
+      const u = allUsers[c.uid] || { name: 'Usuario', color: '#888' };
+      const iconInner = u.photo ? `<img src="${u.photo}" alt="">` : u.name.charAt(0).toUpperCase();
+      const act = c.status === 'requested'
+        ? `<button class="ico-btn" title="Autorizar / Denegar" onclick="openAuth('${c.uid}','${c.id}','comp')">✅</button>`
+        : '';
+      return `<div class="li">
+        <div class="li-icon" style="background:${u.color}22;color:${u.color};font-weight:800">${iconInner}</div>
+        <div class="li-info">
+          <div class="li-date">${u.name} <span style="color:var(--text3);font-weight:500">· ${fmt(c.generatedDate)}</span></div>
+          <div class="li-desc">${c.earnedDate ? `Generado ${fmt(c.earnedDate)}` : 'Solicitud directa'}${c.reason ? ' · ' + c.reason : ''}</div>
+        </div>
+        <div class="li-right">
+          ${badgeHtml(c.status || 'pending')}
+          ${act}
+        </div>
+      </div>`;
+    }).join('')}</div>`;
+  }
+
+  el.innerHTML = html;
 }
 
 // ══════════════════════════════════════════
@@ -1832,6 +2054,12 @@ function showNativeNotification(ev) {
 
 // Catálogo de tipos: define icono, clase de color, builder de título/sub
 const NOTIF_TYPES = {
+  comp_earned: {
+    icon: '🏦', cls: 'warn',
+    title: e => `${e.actorName} agregó un compensatorio al banco`,
+    sub:   e => `Generado el ${fmt(e.payload.date)}${e.payload.reason?' · '+e.payload.reason:''}`,
+    audience: 'admins'
+  },
   comp_requested: {
     icon: '📲', cls: 'info',
     title: e => `${e.actorName} solicitó un compensatorio`,

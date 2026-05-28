@@ -631,6 +631,9 @@ select.ifield{cursor:pointer}
       <button class="btn btn-ghost" id="btn-admin-toggle" onclick="closeModal('modal-user');toggleAdminMode()" style="display:flex;align-items:center;justify-content:center;gap:7px">
         🔑 Activar modo administrador
       </button>
+      <button class="btn btn-ghost" id="btn-gen-report" onclick="closeModal('modal-user');generateReportPdf()" style="display:none;align-items:center;justify-content:center;gap:7px">
+        📄 Generar reporte PDF
+      </button>
       <button class="btn btn-ghost" id="btn-install-app" onclick="manualInstall()" style="display:none;align-items:center;justify-content:center;gap:7px">
         📲 Instalar app
       </button>
@@ -2103,6 +2106,9 @@ function showUserMenuData() {
       ? '🔓 Desactivar modo administrador'
       : '🔑 Activar modo administrador';
   }
+  // Botón "Generar reporte PDF" — solo admin
+  const reportBtn = document.getElementById('btn-gen-report');
+  if (reportBtn) reportBtn.style.display = me.isAdmin ? 'flex' : 'none';
   // Botón "Instalar app" — si hay prompt pendiente, o si es iOS Safari, y no está ya instalada
   const installBtn = document.getElementById('btn-install-app');
   if (installBtn) {
@@ -2141,6 +2147,56 @@ async function manualEnableNotifications() {
   const result = await Notification.requestPermission();
   if (result === 'granted')  toast('Notificaciones activadas ✓', 's');
   else if (result === 'denied') toast('Bloqueadas — activá en config del navegador', 'w');
+}
+
+// Genera el reporte PDF on-demand reusando el mismo template del workflow programado
+async function generateReportPdf() {
+  if (!me?.isAdmin) { toast('Solo el admin puede generar reportes', 'e'); return; }
+
+  // Abrimos la ventana ANTES del await — sino los browsers la bloquean como popup
+  const win = window.open('', '_blank');
+  if (!win) {
+    toast('Permití pop-ups en este sitio para generar el reporte', 'e');
+    return;
+  }
+  // Loading screen mientras carga el template
+  win.document.write(`
+    <html><head><title>Generando reporte...</title>
+    <style>body{font-family:-apple-system,sans-serif;display:flex;align-items:center;justify-content:center;height:100vh;margin:0;background:#070D1F;color:#F0B429}</style>
+    </head><body>📋 Generando reporte...</body></html>
+  `);
+
+  toast('Generando reporte...', 's');
+
+  try {
+    // 1. Cargar template del repo
+    const res = await fetch('report/template.html');
+    if (!res.ok) throw new Error('template no disponible');
+    let html = await res.text();
+
+    // 2. Inyectar data actual (snapshot del momento de generar)
+    const data = {
+      users:        allUsers,
+      vacations:    allVac,
+      compensatory: allComp,
+      admins:       allAdmins,
+      generatedAt:  new Date().toISOString()
+    };
+    html = html.replace('__DATA__', JSON.stringify(data).replace(/<\/script>/g, '<\\/script>'));
+
+    // 3. Escribir el HTML en la ventana ya abierta
+    win.document.open();
+    win.document.write(html);
+    win.document.close();
+
+    // 4. Esperar render y disparar print dialog (usuario elige "Guardar como PDF")
+    setTimeout(() => {
+      try { win.focus(); win.print(); } catch(e) {}
+    }, 1500);
+  } catch (e) {
+    win.document.body.innerHTML = `<div style="color:#EF4444;padding:20px">Error: ${e.message}</div>`;
+    toast('Error generando reporte: ' + e.message, 'e');
+  }
 }
 
 // ══════════════════════════════════════════

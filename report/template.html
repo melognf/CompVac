@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Reporte Team Days</title>
+<style>
+  @page { size: A4 landscape; margin: 10mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #1a1a1a;
+    background: #fff;
+    font-size: 11px;
+    line-height: 1.4;
+    padding: 0;
+  }
+  .header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    border-bottom: 3px solid #DC2626;
+    padding-bottom: 10px;
+    margin-bottom: 18px;
+  }
+  .header h1 { font-size: 20px; color: #0a0a0a; line-height: 1.2; }
+  .header .sub { color: #6b7280; font-size: 12px; margin-top: 3px; text-transform: capitalize; }
+  .header .meta { text-align: right; font-size: 10px; color: #9ca3af; }
+  .header .meta strong { color: #1a1a1a; }
+
+  h2 {
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #6b7280;
+    margin: 18px 0 8px;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #e5e7eb;
+  }
+
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+    margin-bottom: 6px;
+  }
+  .stat-card {
+    background: #f9fafb;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 12px;
+  }
+  .stat-num { font-size: 26px; font-weight: 900; line-height: 1; }
+  .stat-lbl {
+    font-size: 9px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    margin-top: 6px;
+    font-weight: 700;
+  }
+
+  .user-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+  .user-table th {
+    text-align: left;
+    padding: 6px 8px;
+    font-size: 9px;
+    color: #6b7280;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border-bottom: 2px solid #e5e7eb;
+    font-weight: 700;
+  }
+  .user-table th.num, .user-table td.num { text-align: center; }
+  .user-table td {
+    padding: 8px;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 11px;
+  }
+  .user-table tr:last-child td { border-bottom: none; }
+  .uav {
+    width: 22px; height: 22px; border-radius: 50%;
+    display: inline-flex; align-items: center; justify-content: center;
+    color: white; font-weight: 800; font-size: 10px;
+    margin-right: 8px; vertical-align: middle;
+  }
+  .badge {
+    display: inline-block; min-width: 24px;
+    padding: 2px 7px; border-radius: 10px;
+    font-size: 10px; font-weight: 800; text-align: center;
+  }
+  .b-warn { background: #fef3c7; color: #92400e; }
+  .b-info { background: #dbeafe; color: #1e40af; }
+  .b-ok   { background: #d1fae5; color: #065f46; }
+  .b-mut  { background: #f3f4f6; color: #6b7280; }
+
+  /* Timeline (gráfico panorámico) */
+  .timeline {
+    margin-top: 4px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    overflow: hidden;
+    page-break-inside: avoid;
+  }
+  .tl-header {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    background: #f9fafb;
+    border-bottom: 1px solid #e5e7eb;
+  }
+  .tl-corner {
+    padding: 6px 8px;
+    font-size: 9px; font-weight: 700; color: #6b7280;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    display: flex; align-items: center;
+    border-right: 1px solid #e5e7eb;
+  }
+  .tl-months {
+    display: grid;
+    grid-template-columns: repeat(12, 1fr);
+    position: relative;
+  }
+  .tl-month {
+    text-align: center;
+    font-size: 9px; font-weight: 700; color: #6b7280;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    padding: 6px 0;
+    border-right: 1px solid #f3f4f6;
+  }
+  .tl-month:last-child { border-right: none; }
+  .tl-month.curr { background: #fef2f2; color: #DC2626; }
+  .tl-row {
+    display: grid;
+    grid-template-columns: 100px 1fr;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .tl-row:last-child { border-bottom: none; }
+  .tl-user {
+    padding: 8px;
+    font-size: 10px; font-weight: 700;
+    display: flex; align-items: center; gap: 6px;
+    border-right: 1px solid #e5e7eb;
+    background: #f9fafb;
+  }
+  .tl-track {
+    position: relative;
+    height: 32px;
+    background:
+      repeating-linear-gradient(
+        to right,
+        transparent 0,
+        transparent calc(100% / 12 - 1px),
+        #f3f4f6 calc(100% / 12 - 1px),
+        #f3f4f6 calc(100% / 12)
+      );
+  }
+  .tl-bar {
+    position: absolute;
+    top: 6px; bottom: 6px;
+    border-radius: 4px;
+    border: 1px solid rgba(0,0,0,0.12);
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-size: 9px; font-weight: 800;
+    overflow: hidden;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.08);
+  }
+  .tl-today {
+    position: absolute;
+    top: -2px; bottom: -2px;
+    width: 2px;
+    background: #DC2626;
+    z-index: 5;
+  }
+
+  .pending-item {
+    background: #fffbeb;
+    border-left: 3px solid #f59e0b;
+    padding: 10px 14px;
+    border-radius: 6px;
+    margin-bottom: 6px;
+    font-size: 11px;
+  }
+  .pending-item strong { color: #0a0a0a; }
+  .pending-item em { color: #6b7280; font-style: normal; }
+  .pending-meta {
+    font-size: 9px; color: #92400e;
+    text-transform: uppercase; letter-spacing: 0.05em;
+    font-weight: 700; margin-top: 4px;
+  }
+
+  .footer {
+    margin-top: 16px;
+    padding-top: 8px;
+    border-top: 1px solid #e5e7eb;
+    font-size: 9px;
+    color: #9ca3af;
+    text-align: center;
+  }
+
+  .two-col {
+    display: grid;
+    grid-template-columns: 1.4fr 1fr;
+    gap: 16px;
+    margin-bottom: 6px;
+  }
+</style>
+</head>
+<body>
+<div id="report"></div>
+
+<script>
+const DATA = __DATA__;
+const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+
+function fmt(d) {
+  if (!d) return '?';
+  const [y, m, day] = d.split('-');
+  return `${day}/${m}/${y}`;
+}
+function avatarHtml(u) {
+  return `<span class="uav" style="background:${u.color || '#888'}">${(u.name||'?').charAt(0).toUpperCase()}</span>`;
+}
+
+function render() {
+  const { users, vacations, compensatory: comps, admins, generatedAt } = DATA;
+  const now = new Date(generatedAt);
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  const userList = Object.entries(users).filter(([uid]) => !admins[uid])
+    .sort(([,a],[,b]) => (a.name||'').localeCompare(b.name||''));
+
+  // Totales
+  let totalBank = 0, totalReq = 0, totalAuth = 0, activeVac = 0, upcomingVac = 0;
+  userList.forEach(([uid]) => {
+    Object.values(comps[uid] || {}).forEach(c => {
+      if (c.status === 'available')  totalBank++;
+      if (c.status === 'requested')  totalReq++;
+      if (c.status === 'authorized') totalAuth++;
+    });
+    Object.values(vacations[uid] || {}).forEach(v => {
+      if (!v.startDate || !v.endDate) return;
+      const s = new Date(v.startDate + 'T00:00:00');
+      const e = new Date(v.endDate + 'T00:00:00');
+      if (today >= s && today <= e) activeVac++;
+      else if (s > today) upcomingVac++;
+    });
+  });
+
+  // Solicitudes pendientes (status=requested)
+  const pending = [];
+  userList.forEach(([uid, u]) => {
+    Object.entries(comps[uid] || {}).forEach(([id, c]) => {
+      if (c.status === 'requested') {
+        const days = c.requestedAt ? Math.floor((Date.now() - c.requestedAt) / 86400000) : null;
+        pending.push({ user: u, comp: c, days });
+      }
+    });
+  });
+  pending.sort((a, b) => (a.comp.requestedAt || 0) - (b.comp.requestedAt || 0));
+
+  // Timeline: 12 meses desde el mes actual
+  const tlStart = new Date(today.getFullYear(), today.getMonth(), 1);
+  const tlEnd = new Date(tlStart);
+  tlEnd.setMonth(tlEnd.getMonth() + 12);
+  const totalDays = (tlEnd - tlStart) / 86400000;
+
+  const months = [];
+  const cur = new Date(tlStart);
+  while (cur < tlEnd) {
+    months.push({
+      label: MONTHS[cur.getMonth()].slice(0, 3),
+      isCurrent: cur.getMonth() === today.getMonth() && cur.getFullYear() === today.getFullYear(),
+    });
+    cur.setMonth(cur.getMonth() + 1);
+  }
+
+  function rangeToPct(s, e) {
+    const sd = new Date(s + 'T00:00:00');
+    const ed = new Date(e + 'T00:00:00'); ed.setDate(ed.getDate() + 1);
+    const cs = sd < tlStart ? tlStart : sd > tlEnd ? tlEnd : sd;
+    const ce = ed < tlStart ? tlStart : ed > tlEnd ? tlEnd : ed;
+    if (ce <= cs) return null;
+    const left  = ((cs - tlStart) / 86400000 / totalDays) * 100;
+    const width = ((ce - cs) / 86400000 / totalDays) * 100;
+    return { left, width };
+  }
+  const todayPct = ((today - tlStart) / 86400000 / totalDays) * 100;
+
+  const dateStr = today.toLocaleDateString('es-AR', { weekday: 'long', day: '2-digit', month: 'long', year: 'numeric' });
+
+  document.getElementById('report').innerHTML = `
+    <div class="header">
+      <div>
+        <h1>📋 Reporte Semanal — Team Days</h1>
+        <div class="sub">${dateStr}</div>
+      </div>
+      <div class="meta">
+        <div><strong>${userList.length}</strong> miembros del equipo</div>
+        <div>Generado automáticamente</div>
+      </div>
+    </div>
+
+    <h2>📊 Resumen General</h2>
+    <div class="summary">
+      <div class="stat-card">
+        <div class="stat-num" style="color:#f59e0b">${totalBank}</div>
+        <div class="stat-lbl">Comps en banco</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:#3b82f6">${totalReq}</div>
+        <div class="stat-lbl">Esperando autorización</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:#10b981">${totalAuth}</div>
+        <div class="stat-lbl">Comps autorizados</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-num" style="color:#8b5cf6">${activeVac + upcomingVac}</div>
+        <div class="stat-lbl">Vacaciones activas / próximas</div>
+      </div>
+    </div>
+
+    <div class="two-col">
+      <div>
+        <h2>👥 Detalle por usuario</h2>
+        <table class="user-table">
+          <thead>
+            <tr>
+              <th>Usuario</th>
+              <th class="num">Banco</th>
+              <th class="num">Pend.</th>
+              <th class="num">Autoriz.</th>
+              <th class="num">Vac. próx.</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${userList.length === 0 ? `
+              <tr><td colspan="5" style="text-align:center;color:#9ca3af;padding:20px">Sin usuarios todavía</td></tr>
+            ` : userList.map(([uid, u]) => {
+              const ucomps = Object.values(comps[uid] || {});
+              const bank = ucomps.filter(c => c.status === 'available').length;
+              const reqs = ucomps.filter(c => c.status === 'requested').length;
+              const auth = ucomps.filter(c => c.status === 'authorized').length;
+              const vacUpc = Object.values(vacations[uid] || {})
+                .filter(v => v.startDate && new Date(v.startDate + 'T00:00:00') >= today).length;
+              return `
+                <tr>
+                  <td>${avatarHtml(u)}<strong>${u.name}</strong></td>
+                  <td class="num"><span class="badge ${bank>0?'b-warn':'b-mut'}">${bank}</span></td>
+                  <td class="num"><span class="badge ${reqs>0?'b-info':'b-mut'}">${reqs}</span></td>
+                  <td class="num"><span class="badge ${auth>0?'b-ok':'b-mut'}">${auth}</span></td>
+                  <td class="num"><span class="badge b-mut">${vacUpc}</span></td>
+                </tr>
+              `;
+            }).join('')}
+          </tbody>
+        </table>
+      </div>
+
+      <div>
+        <h2>${pending.length > 0 ? '⚠️ Pendientes de autorizar' : '✅ Sin pendientes'}</h2>
+        ${pending.length === 0
+          ? `<div style="background:#f0fdf4;border-left:3px solid #10b981;padding:10px 14px;border-radius:6px;font-size:11px;color:#065f46">Todos los pedidos del equipo están al día.</div>`
+          : pending.map(p => `
+              <div class="pending-item">
+                <strong>${p.user.name}</strong> quiere tomar el <strong>${fmt(p.comp.generatedDate)}</strong>
+                ${p.comp.earnedDate ? ` · generado el ${fmt(p.comp.earnedDate)}` : ''}
+                ${p.comp.reason ? `<br/><em>${p.comp.reason}</em>` : ''}
+                <div class="pending-meta">
+                  ${p.days !== null ? (p.days === 0 ? 'Pedido hoy' : `Esperando hace ${p.days} día${p.days === 1 ? '' : 's'}`) : ''}
+                </div>
+              </div>
+            `).join('')
+        }
+      </div>
+    </div>
+
+    <h2>📅 Panorama anual (próximos 12 meses)</h2>
+    <div class="timeline">
+      <div class="tl-header">
+        <div class="tl-corner">Equipo</div>
+        <div class="tl-months">
+          ${months.map(m => `<div class="tl-month${m.isCurrent?' curr':''}">${m.label}</div>`).join('')}
+        </div>
+      </div>
+      ${userList.length === 0 ? `
+        <div style="padding:20px;text-align:center;color:#9ca3af;font-size:11px">Sin usuarios</div>
+      ` : userList.map(([uid, u]) => {
+        const uvacs = Object.values(vacations[uid] || {})
+          .filter(v => v.startDate && v.endDate)
+          .map(v => {
+            const pos = rangeToPct(v.startDate, v.endDate);
+            if (!pos) return null;
+            const days = Math.round((new Date(v.endDate) - new Date(v.startDate)) / 86400000) + 1;
+            return { ...pos, days };
+          })
+          .filter(Boolean);
+        return `
+          <div class="tl-row">
+            <div class="tl-user">${avatarHtml(u)}${u.name.split(' ')[0]}</div>
+            <div class="tl-track">
+              ${uvacs.map(v => `<div class="tl-bar" style="left:${v.left}%;width:${v.width}%;background:${u.color}">${v.days >= 5 ? v.days + 'd' : ''}</div>`).join('')}
+              ${todayPct >= 0 && todayPct <= 100 ? `<div class="tl-today" style="left:${todayPct}%"></div>` : ''}
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+
+    <div class="footer">
+      Reporte generado automáticamente por <strong>Team Days</strong> ·
+      ${dateStr} ·
+      Este envío también sirve como backup de datos por si algo le pasa a la app.
+    </div>
+  `;
+}
+
+render();
+</script>
+</body>
+</html>

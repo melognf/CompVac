@@ -1,0 +1,18 @@
+{
+  "name": "team-days-report",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Generador y enviador del reporte semanal de Team Days",
+  "main": "generate-and-send.js",
+  "scripts": {
+    "start": "node generate-and-send.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "firebase-admin": "^12.7.0",
+    "nodemailer": "^6.9.16",
+    "puppeteer": "^23.9.0"
+  }
+}

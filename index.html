@@ -84,11 +84,51 @@ select.ifield{cursor:pointer}
 .li-icon img{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0}
 
 /* ── HEADER ── */
-.app-header{padding:16px 20px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
-.hdr-l{display:flex;flex-direction:column}
+.app-header{padding:16px 20px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;gap:10px}
+.hdr-l{display:flex;flex-direction:column;flex:1;min-width:0}
 .hdr-greet{font-size:12px;color:var(--text2)}
-.hdr-name{font-size:20px;font-weight:800;letter-spacing:-.02em}
+.hdr-name{font-size:20px;font-weight:800;letter-spacing:-.02em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hdr-actions{display:flex;align-items:center;gap:10px;flex-shrink:0}
 .avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;cursor:pointer;flex-shrink:0}
+
+/* ── BELL / NOTIFICATIONS ── */
+.bell{position:relative;width:42px;height:42px;border-radius:50%;background:var(--card);border:1px solid var(--card-b);display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:20px;transition:transform .15s,background .15s;flex-shrink:0}
+.bell:active{transform:scale(.94)}
+.bell:hover{background:var(--card-b)}
+.bell-badge{position:absolute;top:-3px;right:-3px;min-width:18px;height:18px;padding:0 5px;background:var(--red);color:#fff;border-radius:9px;font-size:10px;font-weight:800;display:flex;align-items:center;justify-content:center;border:2px solid var(--bg);line-height:1}
+.bell.has-new{animation:bell-shake .6s cubic-bezier(.36,.07,.19,.97)}
+@keyframes bell-shake{
+  0%,100%{transform:rotate(0)}
+  10%,30%,50%{transform:rotate(-12deg)}
+  20%,40%,60%{transform:rotate(12deg)}
+  70%,90%{transform:rotate(-6deg)}
+  80%{transform:rotate(6deg)}
+}
+
+/* ── NOTIFICATIONS PANEL ── */
+.notif-list{max-height:65vh;overflow-y:auto;margin:-4px -4px 0;padding:4px}
+.notif-item{display:flex;gap:11px;padding:12px;border-radius:11px;margin-bottom:6px;background:rgba(255,255,255,0.02);border:1px solid transparent;transition:background .15s}
+.notif-item.unread{background:rgba(75,159,255,0.07);border-color:rgba(75,159,255,0.2)}
+.notif-item:active{background:rgba(255,255,255,0.06)}
+.notif-icon{width:36px;height:36px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0}
+.notif-icon.ok{background:rgba(16,185,129,0.13);color:var(--green)}
+.notif-icon.bad{background:rgba(239,68,68,0.13);color:var(--red)}
+.notif-icon.info{background:rgba(75,159,255,0.13);color:var(--blue)}
+.notif-icon.warn{background:rgba(240,180,41,0.13);color:var(--gold)}
+.notif-info{flex:1;min-width:0}
+.notif-title{font-size:13px;font-weight:700;color:var(--text);line-height:1.35;margin-bottom:3px}
+.notif-sub{font-size:11px;color:var(--text2);line-height:1.4}
+.notif-time{font-size:10px;color:var(--text3);margin-top:4px;font-weight:600;letter-spacing:.02em;text-transform:uppercase}
+.notif-empty{display:flex;flex-direction:column;align-items:center;gap:10px;padding:40px 20px;color:var(--text3)}
+.notif-clear{font-size:11px;color:var(--text2);padding:8px;text-align:center;cursor:pointer;border-top:1px solid var(--card-b);margin-top:8px;font-weight:600;transition:color .15s}
+.notif-clear:active{color:var(--text)}
+
+/* ── TOAST extendido — notificación con icono y subtítulo ── */
+.toast-rich{position:fixed;top:14px;left:50%;transform:translateX(-50%) translateY(-120px);background:#1F2937;color:var(--text);padding:12px 14px;border-radius:14px;z-index:200;transition:transform .35s cubic-bezier(.32,.72,0,1);max-width:380px;width:calc(100% - 24px);border:1px solid var(--card-b);box-shadow:var(--shadow);display:flex;gap:11px;align-items:center;cursor:pointer}
+.toast-rich.show{transform:translateX(-50%) translateY(0)}
+.toast-rich .ti{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:16px;flex-shrink:0;background:rgba(75,159,255,0.16);color:var(--blue)}
+.toast-rich .tt{font-size:13px;font-weight:700;line-height:1.3}
+.toast-rich .ts{font-size:11px;color:var(--text2);margin-top:2px}
 
 /* ── TAB NAV ── */
 .tab-nav{display:flex;padding:2px 16px 8px;gap:2px;flex-shrink:0}
@@ -296,7 +336,13 @@ select.ifield{cursor:pointer}
       <div class="hdr-greet" id="hdr-greet">Hola</div>
       <div class="hdr-name" id="hdr-name">—</div>
     </div>
-    <div class="avatar" id="hdr-av" onclick="openModal('modal-user')">?</div>
+    <div class="hdr-actions">
+      <div class="bell" id="bell" onclick="openNotifications()">
+        🔔
+        <span class="bell-badge" id="bell-badge" style="display:none">0</span>
+      </div>
+      <div class="avatar" id="hdr-av" onclick="openModal('modal-user')">?</div>
+    </div>
   </div>
 
   <div class="tab-nav">
@@ -430,6 +476,19 @@ select.ifield{cursor:pointer}
   </div>
 </div>
 
+<!-- ═══ MODAL: Notifications ═══ -->
+<div class="modal-ov" id="modal-notif">
+  <div class="modal-sheet">
+    <div class="m-handle"></div>
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+      <div class="m-title" style="margin:0">🔔 Notificaciones</div>
+      <button class="ico-btn" onclick="closeModal('modal-notif')" style="font-size:22px;color:var(--text2)">×</button>
+    </div>
+    <div class="notif-list" id="notif-list"></div>
+    <div class="notif-clear" id="notif-clear" style="display:none" onclick="clearAllNotifications()">Marcar todo como leído</div>
+  </div>
+</div>
+
 <!-- ═══ MODAL: Admin Login ═══ -->
 <div class="modal-ov" id="modal-admin">
   <div class="modal-sheet">
@@ -505,6 +564,13 @@ select.ifield{cursor:pointer}
 </div>
 
 <div class="toast" id="toast"></div>
+<div class="toast-rich" id="toast-rich" onclick="openNotifications();this.classList.remove('show')">
+  <div class="ti" id="toast-rich-icon">🔔</div>
+  <div>
+    <div class="tt" id="toast-rich-title"></div>
+    <div class="ts" id="toast-rich-sub"></div>
+  </div>
+</div>
 
 <script>
 // ══════════════════════════════════════════
@@ -526,7 +592,7 @@ const DEFAULT_CONFIG = {
 };
 
 let db = null;
-let me = null;           // current user {uid, name, color, isAdmin}
+let me = null;           // current user {uid, name, color, photo, isAdmin}
 let allUsers  = {};
 let allComp   = {};
 let allVac    = {};
@@ -534,6 +600,12 @@ let allAdmins = {};
 let bossWa    = '';
 let bossName  = 'el jefe';
 let adminCode = '';
+
+// Notifications
+let activityList = [];       // array de {id, ts, type, actorUid, actorName, targetUid, payload}
+let activityReady = false;   // true después del initial load
+let lastSeenTs = 0;          // ts del último evento que el usuario "vio"
+const NOTIF_LIMIT = 100;     // cuántos eventos cargamos del feed
 
 const now   = new Date();
 let calY = now.getFullYear();
@@ -849,7 +921,11 @@ function processImage(file) {
 function enterApp() {
   updateHeader();
   showScreen('screen-main');
+  // Cargar lastSeenTs antes de subscribir actividad
+  const stored = lsGet('lastSeenTs');
+  lastSeenTs = stored ? parseInt(stored, 10) : 0;
   subscribeData();
+  subscribeActivity();
 }
 
 // ══════════════════════════════════════════
@@ -881,7 +957,10 @@ function subscribeData() {
     if (me) {
       const wasAdmin = me.isAdmin;
       me.isAdmin = !!allAdmins[me.uid];
-      if (wasAdmin !== me.isAdmin) lsSet('user', JSON.stringify(me));
+      if (wasAdmin !== me.isAdmin) {
+        lsSet('user', JSON.stringify(me));
+        updateBellBadge(); // el badge depende de me.isAdmin (cambia audiencia 'admins')
+      }
     }
     renderCalendar(); renderComp(); updatePendBanner();
   });
@@ -1134,6 +1213,7 @@ function doSendWa() {
   const url = `https://wa.me/${num}?text=${encodeURIComponent(buildWaMsg(comp))}`;
 
   db.ref(`compensatory/${uid}/${id}`).update({ status: 'requested', requestedAt: Date.now() });
+  logActivity('comp_requested', { compId: id, date: comp.generatedDate, reason: comp.reason || '' });
   closeModal('modal-wa');
   window.open(url, '_blank');
   toast('Mensaje enviado por WhatsApp', 's');
@@ -1150,6 +1230,7 @@ function cancelComp(id) {
   const url = `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
 
   db.ref(`compensatory/${me.uid}/${id}`).remove().then(() => {
+    logActivity('comp_cancelled', { compId: id, date: c.generatedDate });
     window.open(url, '_blank');
     toast('Cancelado y aviso enviado', 's');
   });
@@ -1264,9 +1345,11 @@ function saveVac() {
     return;
   }
 
-  db.ref(`vacations/${me.uid}/${genId()}`).set({
+  const vid = genId();
+  db.ref(`vacations/${me.uid}/${vid}`).set({
     startDate: start, endDate: end, note, createdAt: Date.now()
   }).then(() => {
+    logActivity('vac_created', { vacId: vid, startDate: start, endDate: end, note });
     closeModal('modal-vac');
     toast('Vacaciones guardadas ✓', 's');
     switchTab('cal');
@@ -1400,7 +1483,15 @@ function doStatusChange(status) {
   if (!pendingAuth) return;
   const { uid, id, type } = pendingAuth;
   const path = type === 'comp' ? `compensatory/${uid}/${id}` : `vacations/${uid}/${id}`;
+  const item = type === 'comp' ? allComp[uid]?.[id] : allVac[uid]?.[id];
   db.ref(path).update({ status, authorizedAt: Date.now(), authorizedBy: me?.name || '?' });
+  if (type === 'comp' && item) {
+    logActivity(
+      status === 'authorized' ? 'comp_authorized' : 'comp_denied',
+      { compId: id, date: item.generatedDate, reason: item.reason || '' },
+      uid
+    );
+  }
   closeModal('modal-auth');
   toast(status === 'authorized' ? 'Autorizado ✓' : 'Denegado', status === 'authorized' ? 's' : 'w');
   pendingAuth = null;
@@ -1412,7 +1503,14 @@ function doStatusChange(status) {
 function delItem(type, uid, id) {
   if (uid !== me?.uid) { toast('Solo podés eliminar tus propios elementos', 'e'); return; }
   const path = type === 'comp' ? `compensatory/${uid}/${id}` : `vacations/${uid}/${id}`;
-  db.ref(path).remove().then(() => { toast('Eliminado', 's'); renderCalendar(); });
+  const item = type === 'comp' ? allComp[uid]?.[id] : allVac[uid]?.[id];
+  db.ref(path).remove().then(() => {
+    if (type === 'vac' && item) {
+      logActivity('vac_deleted', { vacId: id, startDate: item.startDate, endDate: item.endDate });
+    }
+    toast('Eliminado', 's');
+    renderCalendar();
+  });
 }
 
 // ══════════════════════════════════════════
@@ -1434,6 +1532,209 @@ function showUserMenuData() {
       ? '🔓 Desactivar modo administrador'
       : '👑 Activar modo administrador';
   }
+}
+
+// ══════════════════════════════════════════
+//  NOTIFICATIONS / ACTIVITY FEED
+// ══════════════════════════════════════════
+
+// Catálogo de tipos: define icono, clase de color, builder de título/sub
+const NOTIF_TYPES = {
+  comp_requested: {
+    icon: '📲', cls: 'info',
+    title: e => `${e.actorName} solicitó un compensatorio`,
+    sub:   e => `Para el ${fmt(e.payload.date)}${e.payload.reason?' · '+e.payload.reason:''}`,
+    audience: 'admins'
+  },
+  comp_authorized: {
+    icon: '✅', cls: 'ok',
+    title: e => `${e.actorName} autorizó el compensatorio`,
+    sub:   e => `Día ${fmt(e.payload.date)} — ¡aprobado!`,
+    audience: 'target'  // owner del comp
+  },
+  comp_denied: {
+    icon: '❌', cls: 'bad',
+    title: e => `${e.actorName} denegó el compensatorio`,
+    sub:   e => `Día ${fmt(e.payload.date)}`,
+    audience: 'target'
+  },
+  comp_cancelled: {
+    icon: '↩️', cls: 'warn',
+    title: e => `${e.actorName} canceló su compensatorio`,
+    sub:   e => `Día ${fmt(e.payload.date)} — ya no necesita autorización`,
+    audience: 'admins'
+  },
+  vac_created: {
+    icon: '🌴', cls: 'info',
+    title: e => `${e.actorName} cargó vacaciones`,
+    sub:   e => `Del ${fmt(e.payload.startDate)} al ${fmt(e.payload.endDate)}${e.payload.note?' · '+e.payload.note:''}`,
+    audience: 'team'
+  },
+  vac_deleted: {
+    icon: '🗑️', cls: 'warn',
+    title: e => `${e.actorName} eliminó sus vacaciones`,
+    sub:   e => `Eran del ${fmt(e.payload.startDate)} al ${fmt(e.payload.endDate)}`,
+    audience: 'team'
+  }
+};
+
+// Loguea un evento al nodo /activity de Firebase
+function logActivity(type, payload = {}, targetUid = null) {
+  if (!db || !me) return;
+  const ev = {
+    ts: Date.now(),
+    type,
+    actorUid: me.uid,
+    actorName: me.name,
+    targetUid: targetUid || null,
+    payload
+  };
+  db.ref('activity').push(ev).catch(e => console.warn('No se pudo loguear actividad:', e.message));
+}
+
+// Determina si un evento es relevante para mí (cuenta en el badge)
+function isRelevant(ev) {
+  if (!me) return false;
+  if (ev.actorUid === me.uid) return false; // mis propias acciones no me notifican
+  const cfg = NOTIF_TYPES[ev.type];
+  if (!cfg) return false;
+  if (cfg.audience === 'team') return true;
+  if (cfg.audience === 'admins') return !!me.isAdmin;
+  if (cfg.audience === 'target') return ev.targetUid === me.uid;
+  return false;
+}
+
+// Subscribe al feed (limit últimos N, ordenado por ts)
+function subscribeActivity() {
+  if (!db) return;
+  const ref = db.ref('activity').orderByChild('ts').limitToLast(NOTIF_LIMIT);
+
+  // Initial load: cargo todo de una y marco como visto si es la primera vez
+  ref.once('value', s => {
+    const items = [];
+    s.forEach(child => items.push({ id: child.key, ...child.val() }));
+    activityList = items.sort((a, b) => b.ts - a.ts);
+    activityReady = true;
+
+    // Si es la primera vez (no hay lastSeen guardado), marcar todo como visto
+    if (lastSeenTs === 0 && activityList.length > 0) {
+      lastSeenTs = activityList[0].ts;
+      lsSet('lastSeenTs', String(lastSeenTs));
+    }
+    updateBellBadge();
+  });
+
+  // Live: nuevos eventos
+  ref.on('child_added', s => {
+    if (!activityReady) return; // ignorar carga inicial
+    const ev = { id: s.key, ...s.val() };
+    // Si ya está en la lista, no duplicar (puede pasar con limitToLast)
+    if (activityList.some(e => e.id === ev.id)) return;
+    activityList.unshift(ev);
+    if (activityList.length > NOTIF_LIMIT) activityList.length = NOTIF_LIMIT;
+
+    updateBellBadge();
+    if (isRelevant(ev) && ev.ts > lastSeenTs) {
+      showRichToast(ev);
+      shakeBell();
+    }
+    // Re-render del panel si está abierto
+    if (document.getElementById('modal-notif').classList.contains('open')) renderNotifications();
+  });
+}
+
+function updateBellBadge() {
+  const badge = document.getElementById('bell-badge');
+  if (!badge) return;
+  const unread = activityList.filter(e => e.ts > lastSeenTs && isRelevant(e)).length;
+  if (unread > 0) {
+    badge.style.display = '';
+    badge.textContent = unread > 99 ? '99+' : unread;
+  } else {
+    badge.style.display = 'none';
+  }
+}
+
+function shakeBell() {
+  const bell = document.getElementById('bell');
+  if (!bell) return;
+  bell.classList.remove('has-new');
+  void bell.offsetWidth; // reflow
+  bell.classList.add('has-new');
+}
+
+function openNotifications() {
+  renderNotifications();
+  openModal('modal-notif');
+  // Marcar todo como visto al abrir
+  if (activityList.length) {
+    lastSeenTs = activityList[0].ts;
+    lsSet('lastSeenTs', String(lastSeenTs));
+    updateBellBadge();
+  }
+}
+
+function clearAllNotifications() {
+  if (activityList.length) {
+    lastSeenTs = activityList[0].ts;
+    lsSet('lastSeenTs', String(lastSeenTs));
+    updateBellBadge();
+    renderNotifications();
+  }
+  toast('Marcado como leído', 's');
+}
+
+function renderNotifications() {
+  const el = document.getElementById('notif-list');
+  const clearBtn = document.getElementById('notif-clear');
+  if (!activityList.length) {
+    el.innerHTML = `<div class="notif-empty">
+      <div style="font-size:34px">📭</div>
+      <div style="font-size:13px;text-align:center">Sin notificaciones todavía</div>
+    </div>`;
+    clearBtn.style.display = 'none';
+    return;
+  }
+  el.innerHTML = activityList.map(ev => {
+    const cfg = NOTIF_TYPES[ev.type];
+    if (!cfg) return '';
+    const unread = ev.ts > lastSeenTs && isRelevant(ev);
+    return `<div class="notif-item ${unread?'unread':''}">
+      <div class="notif-icon ${cfg.cls}">${cfg.icon}</div>
+      <div class="notif-info">
+        <div class="notif-title">${cfg.title(ev)}</div>
+        <div class="notif-sub">${cfg.sub(ev)}</div>
+        <div class="notif-time">${fromNow(ev.ts)}</div>
+      </div>
+    </div>`;
+  }).join('');
+  clearBtn.style.display = activityList.some(e => e.ts > lastSeenTs && isRelevant(e)) ? '' : 'none';
+}
+
+function showRichToast(ev) {
+  const cfg = NOTIF_TYPES[ev.type];
+  if (!cfg) return;
+  document.getElementById('toast-rich-icon').textContent = cfg.icon;
+  document.getElementById('toast-rich-icon').className = 'ti ' + cfg.cls;
+  document.getElementById('toast-rich-title').textContent = cfg.title(ev);
+  document.getElementById('toast-rich-sub').textContent   = cfg.sub(ev);
+  const t = document.getElementById('toast-rich');
+  t.classList.add('show');
+  clearTimeout(t._timer);
+  t._timer = setTimeout(() => t.classList.remove('show'), 5000);
+}
+
+function fromNow(ts) {
+  const diff = Date.now() - ts;
+  if (diff < 60_000) return 'ahora';
+  const min = Math.floor(diff / 60_000);
+  if (min < 60) return `hace ${min} min`;
+  const hr = Math.floor(min / 60);
+  if (hr < 24) return `hace ${hr}h`;
+  const days = Math.floor(hr / 24);
+  if (days < 7) return `hace ${days}d`;
+  const d = new Date(ts);
+  return d.toLocaleDateString('es-AR', { day:'2-digit', month:'2-digit' });
 }
 
 // ══════════════════════════════════════════

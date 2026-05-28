@@ -79,7 +79,7 @@ select.ifield{cursor:pointer}
 .photo-preview:active{transform:scale(.97)}
 .photo-preview:hover{border-color:var(--gold)}
 .photo-preview img{width:100%;height:100%;object-fit:cover}
-.photo-letter{font-size:36px;font-weight:800;color:var(--text2)}
+.photo-letter{font-size:40px;font-weight:800;color:var(--text2);line-height:1}
 .photo-edit-badge{position:absolute;bottom:0;right:0;width:28px;height:28px;background:var(--gold);color:#000;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:13px;border:2px solid var(--bg)}
 
 /* ── AVATAR con imagen ── */
@@ -354,7 +354,21 @@ select.ifield{cursor:pointer}
 <!-- ═══ SCREEN: LOGIN (Crear perfil — solo primera vez) ═══ -->
 <div id="screen-login" class="screen active">
   <div style="display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:8px">
-    <div style="font-size:48px">📅</div>
+    <svg width="56" height="56" viewBox="0 0 48 48" style="display:block">
+      <!-- Anillos del binding -->
+      <rect x="14" y="4" width="3" height="8" rx="1.5" fill="#1A1A1A"/>
+      <rect x="31" y="4" width="3" height="8" rx="1.5" fill="#1A1A1A"/>
+      <!-- Cuerpo del calendario -->
+      <rect x="5" y="8" width="38" height="36" rx="4" fill="#FFFFFF" stroke="#1A1A1A" stroke-width="2"/>
+      <!-- Header rojo -->
+      <path d="M 6 17 L 42 17 L 42 12 Q 42 9 39 9 L 9 9 Q 6 9 6 12 Z" fill="#DC2626"/>
+      <!-- Número "10" -->
+      <text x="24" y="32" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+            font-size="13" font-weight="900" text-anchor="middle" fill="#1A1A1A">10</text>
+      <!-- Texto "FECHA" -->
+      <text x="24" y="40" font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif"
+            font-size="5" font-weight="800" letter-spacing="0.5" text-anchor="middle" fill="#DC2626">FECHA</text>
+    </svg>
     <div style="font-size:24px;font-weight:800;letter-spacing:-.02em">Team Days</div>
     <div style="font-size:13px;color:var(--text2);text-align:center">Compensatorios y vacaciones del equipo</div>
   </div>
@@ -367,8 +381,7 @@ select.ifield{cursor:pointer}
     <!-- Foto opcional -->
     <div class="ig" style="align-items:center">
       <div id="photo-preview" class="photo-preview" onclick="document.getElementById('photo-input').click()">
-        <div class="photo-letter" id="photo-letter">?</div>
-        <div class="photo-edit-badge">📷</div>
+        <div class="photo-letter" id="photo-letter">📷</div>
       </div>
       <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhotoSelect(event)">
       <div style="font-size:11px;color:var(--text3);margin-top:6px">Tocá para agregar foto (opcional)</div>
@@ -652,8 +665,7 @@ select.ifield{cursor:pointer}
     <div class="form-stack">
       <div class="ig" style="align-items:center">
         <div id="ep-photo-preview" class="photo-preview" onclick="document.getElementById('ep-photo-input').click()">
-          <div class="photo-letter" id="ep-photo-letter">?</div>
-          <div class="photo-edit-badge">📷</div>
+          <div class="photo-letter" id="ep-photo-letter">📷</div>
         </div>
         <input type="file" id="ep-photo-input" accept="image/*" style="display:none" onchange="handleEditPhotoSelect(event)">
         <div style="display:flex;gap:8px;margin-top:8px">
@@ -919,11 +931,11 @@ async function handlePhotoSelect(event) {
 }
 
 function updatePhotoLetter() {
-  if (pendingPhoto) return; // si hay foto, no mostrar letra
-  const name = v('login-name').trim();
-  const letter = name ? name.charAt(0).toUpperCase() : '?';
+  // Si ya hay foto cargada, no tocamos el preview (lo maneja handlePhotoSelect)
+  if (pendingPhoto) return;
+  // Sino, dejamos siempre la cámara como invitación a subir foto
   const el = document.getElementById('photo-letter');
-  if (el) el.textContent = letter;
+  if (el) el.textContent = '📷';
 }
 
 // ── Edit profile ──
@@ -980,8 +992,7 @@ function renderEditPhotoPreview() {
     wrap.innerHTML = `<img src="${editPhoto}" alt="preview"><div class="photo-edit-badge">📷</div>`;
     rmBtn.style.display = '';
   } else {
-    const name = v('ep-name').trim() || me?.name || '?';
-    wrap.innerHTML = `<div class="photo-letter" id="ep-photo-letter">${name.charAt(0).toUpperCase()}</div><div class="photo-edit-badge">📷</div>`;
+    wrap.innerHTML = `<div class="photo-letter" id="ep-photo-letter">📷</div>`;
     rmBtn.style.display = 'none';
   }
 }

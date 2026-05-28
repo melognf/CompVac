@@ -214,7 +214,7 @@ select.ifield{cursor:pointer}
 <div id="app">
 
 <!-- ═══ SCREEN: FIREBASE SETUP ═══ -->
-<div id="screen-firebase" class="screen active">
+<div id="screen-firebase" class="screen">
   <div class="setup-logo">🔥</div>
   <div class="setup-title">Team Days — Setup</div>
   <div class="setup-sub">Configurá Firebase para sincronización en tiempo real entre todos los integrantes del equipo.</div>
@@ -242,7 +242,7 @@ select.ifield{cursor:pointer}
 </div>
 
 <!-- ═══ SCREEN: LOGIN ═══ -->
-<div id="screen-login" class="screen">
+<div id="screen-login" class="screen active">
   <div style="display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:8px">
     <div style="font-size:48px">📅</div>
     <div style="font-size:24px;font-weight:800;letter-spacing:-.02em">Team Days</div>
@@ -273,7 +273,6 @@ select.ifield{cursor:pointer}
     <button class="btn btn-ghost" onclick="openAdminLogin()" style="display:flex;align-items:center;justify-content:center;gap:7px">
       <span style="font-size:17px">👑</span> Entrar como administrador
     </button>
-    <button class="btn btn-ghost" style="font-size:13px;padding:11px;color:var(--text2)" onclick="showScreen('screen-firebase')">⚙️ Reconfigurar Firebase</button>
   </div>
 </div>
 
@@ -453,7 +452,6 @@ select.ifield{cursor:pointer}
     </div>
     <div style="display:flex;flex-direction:column;gap:9px">
       <button class="btn btn-ghost" onclick="closeModal('modal-user');showScreen('screen-login')">↩ Cambiar usuario</button>
-      <button class="btn btn-ghost" style="color:var(--text2);font-size:13px" onclick="closeModal('modal-user');showScreen('screen-firebase')">⚙️ Reconfigurar Firebase</button>
     </div>
   </div>
 </div>
@@ -467,6 +465,17 @@ select.ifield{cursor:pointer}
 const COLORS = ['#4B9FFF','#F0B429','#10B981','#8B5CF6','#EF4444','#EC4899','#14B8A6','#F97316','#06B6D4','#A3E635'];
 const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 const WDAYS  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+
+// Config fija del proyecto — para volver al setup manual, vaciar apiKey
+const DEFAULT_CONFIG = {
+  apiKey:      "AIzaSyBNkwEQnr9iIZFyzJsZFkZ5c5ieO7mn1iA",
+  databaseURL: "https://compensatoriosvac-default-rtdb.firebaseio.com",
+  projectId:   "compensatoriosvac",
+  appId:       "1:623129162224:web:39e030268237e861ceed35",
+  bossWa:      "5491158254893",
+  bossName:    "Emiliano",
+  adminCode:   "EquipoPro"
+};
 
 let db = null;
 let me = null;           // current user {uid, name, color, isAdmin}
@@ -490,12 +499,20 @@ let pendingAuth = null;  // {uid, id, type, path}
 //  BOOT
 // ══════════════════════════════════════════
 async function boot() {
-  const fbCfg = lsGet('fb_cfg');
-  const user  = lsGet('user');
+  const user = lsGet('user');
 
-  if (!fbCfg) { showScreen('screen-firebase'); return; }
+  // Si DEFAULT_CONFIG está completo, lo usamos directo; sino caemos al setup manual (modo dev)
+  let fbCfg;
+  if (DEFAULT_CONFIG.apiKey) {
+    fbCfg = DEFAULT_CONFIG;
+    lsSet('fb_cfg', JSON.stringify(fbCfg));
+  } else {
+    const stored = lsGet('fb_cfg');
+    if (!stored) { showScreen('screen-firebase'); return; }
+    fbCfg = JSON.parse(stored);
+  }
 
-  if (!connectFirebase(JSON.parse(fbCfg))) return;
+  if (!connectFirebase(fbCfg)) return;
 
   // Anonymous Auth: garantiza un UID verificable por dispositivo
   const authUser = await ensureAuth();

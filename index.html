@@ -1980,6 +1980,9 @@ function renderTeam() {
     const isMe      = uid === me?.uid;
     const isAdmin = !!allAdmins[uid];
     const avatarInner = u.photo ? `<img src="${u.photo}" alt="">` : u.name.charAt(0).toUpperCase();
+    // El admin puede borrar usuarios normales (no a sí mismo, no a otros admins)
+    const canDelete = me?.isAdmin && !isMe && !isAdmin;
+    const safeName = (u.name || '').replace(/'/g, "\\'");
     return `<div class="member-card">
       <div class="m-av" style="background:${u.color}">${avatarInner}</div>
       <div class="m-info">
@@ -1989,9 +1992,28 @@ function renderTeam() {
       <div class="m-counts">
         <div class="cnt"><div class="cnt-n" style="color:var(--gold)">${compList.length}</div><div class="cnt-l">Comp</div></div>
         <div class="cnt"><div class="cnt-n" style="color:var(--blue)">${vacList.length}</div><div class="cnt-l">Vac</div></div>
+        ${canDelete ? `<button class="ico-btn" title="Eliminar usuario" onclick="adminDeleteUser('${uid}','${safeName}')" style="color:var(--red);font-size:18px">🗑️</button>` : ''}
       </div>
     </div>`;
   }).join('');
+}
+
+// El admin puede eliminar un usuario del equipo (borra de un saque sus comps y vacaciones)
+function adminDeleteUser(uid, name) {
+  if (!me?.isAdmin) { toast('Solo el admin puede eliminar usuarios', 'e'); return; }
+  if (uid === me.uid) { toast('No podés eliminarte a vos mismo', 'e'); return; }
+  if (!confirm(`¿Eliminar a "${name}" del equipo?\n\nSe borrarán también todos sus compensatorios y vacaciones. Esta acción no se puede deshacer.`)) return;
+
+  // Borrado atómico en múltiples nodos (multi-path update)
+  const updates = {};
+  updates[`users/${uid}`]        = null;
+  updates[`admins/${uid}`]       = null;
+  updates[`compensatory/${uid}`] = null;
+  updates[`vacations/${uid}`]    = null;
+
+  db.ref().update(updates)
+    .then(() => toast(`${name} eliminado del equipo ✓`, 's'))
+    .catch(e => toast('Error al eliminar: ' + e.message, 'e'));
 }
 
 function updatePendBanner() {

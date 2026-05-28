@@ -5,7 +5,7 @@
 // ══════════════════════════════════════════
 
 // BUILD: 2026-05-28T20:00:00  ← este timestamp se reescribe en cada deploy
-const BUILD = '2026-05-28T13:48:13';
+const BUILD = '2026-05-28T14:06:50';
 const CACHE_NAME = `team-days-${BUILD}`;
 
 const ASSETS = [

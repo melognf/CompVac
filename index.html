@@ -1975,10 +1975,27 @@ function renderTeam() {
   el.innerHTML = members.map(([uid, u]) => {
     const compList  = Object.values(allComp[uid] || {});
     const vacList   = Object.values(allVac[uid]  || {});
-    const authComp  = compList.filter(c => c.status === 'authorized').length;
-    const pendComp  = compList.filter(c => c.status === 'requested').length;
     const isMe      = uid === me?.uid;
     const isAdmin = !!allAdmins[uid];
+
+    // Solo el dueño y el admin pueden ver el banco. Para el resto, comp = solo los "públicos"
+    const canSeeBank = isMe || me?.isAdmin;
+    const publicComps = compList.filter(c => c.status !== 'available'); // los que el resto puede ver
+    const visibleComps = canSeeBank ? compList : publicComps;
+    const banked    = compList.filter(c => c.status === 'available').length;
+    const authComp  = compList.filter(c => c.status === 'authorized').length;
+    const pendComp  = compList.filter(c => c.status === 'requested').length;
+
+    // Status line: distinto según quién está mirando
+    let statusLine;
+    if (canSeeBank) {
+      // Yo viéndome a mí mismo o admin viendo a alguien → muestra banco
+      statusLine = `${banked} en banco · ${authComp} autorizados · ${vacList.length} vac.${pendComp?' · <span style="color:var(--blue)">'+pendComp+' pendiente(s)</span>':''}`;
+    } else {
+      // Usuario normal viendo a otro → solo info pública (sin banco)
+      statusLine = `${authComp} comp. autorizados · ${vacList.length} vac.${pendComp?' · <span style="color:var(--blue)">'+pendComp+' pendiente(s)</span>':''}`;
+    }
+
     const avatarInner = u.photo ? `<img src="${u.photo}" alt="">` : u.name.charAt(0).toUpperCase();
     // El admin puede borrar usuarios normales (no a sí mismo, no a otros admins)
     const canDelete = me?.isAdmin && !isMe && !isAdmin;
@@ -1987,10 +2004,10 @@ function renderTeam() {
       <div class="m-av" style="background:${u.color}">${avatarInner}</div>
       <div class="m-info">
         <div class="m-name">${u.name}${isAdmin?' 🔑':''}${isMe?' <span style="font-size:10px;color:var(--text3)">(yo)</span>':''}</div>
-        <div class="m-status">${authComp}/${compList.length} comp. autorizados · ${vacList.length} vac.${pendComp?' · <span style="color:var(--blue)">'+pendComp+' pendiente(s)</span>':''}</div>
+        <div class="m-status">${statusLine}</div>
       </div>
       <div class="m-counts">
-        <div class="cnt"><div class="cnt-n" style="color:var(--gold)">${compList.length}</div><div class="cnt-l">Comp</div></div>
+        <div class="cnt"><div class="cnt-n" style="color:var(--gold)">${visibleComps.length}</div><div class="cnt-l">Comp</div></div>
         <div class="cnt"><div class="cnt-n" style="color:var(--blue)">${vacList.length}</div><div class="cnt-l">Vac</div></div>
         ${canDelete ? `<button class="ico-btn" title="Eliminar usuario" onclick="adminDeleteUser('${uid}','${safeName}')" style="color:var(--red);font-size:18px">🗑️</button>` : ''}
       </div>

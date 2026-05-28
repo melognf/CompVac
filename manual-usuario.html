@@ -1,0 +1,705 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<title>Manual de Usuario — App de Compensatorios y Vacaciones</title>
+<style>
+  @page { size: A4; margin: 18mm 15mm; }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+    color: #1a1a1a;
+    background: #fff;
+    line-height: 1.55;
+    font-size: 12pt;
+  }
+
+  /* ── Tipografía ── */
+  h1 { font-size: 28pt; color: #0a0a0a; margin: 0 0 6px; letter-spacing: -0.02em; }
+  h2 {
+    font-size: 18pt; color: #DC2626; margin: 28px 0 12px;
+    padding-bottom: 6px; border-bottom: 2px solid #DC2626;
+    page-break-after: avoid;
+  }
+  h3 { font-size: 14pt; color: #1a1a1a; margin: 18px 0 8px; }
+  h4 { font-size: 12pt; color: #DC2626; margin: 12px 0 4px; }
+  p  { margin: 0 0 10px; }
+  ul, ol { margin: 0 0 12px 24px; }
+  li { margin-bottom: 4px; }
+  strong { color: #0a0a0a; }
+  em { color: #6b7280; font-style: normal; }
+  code {
+    background: #f3f4f6; padding: 1px 6px; border-radius: 4px;
+    font-family: 'Consolas', 'Monaco', monospace; font-size: 11pt;
+    color: #DC2626;
+  }
+
+  /* ── Cover ── */
+  .cover {
+    height: 250mm; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; text-align: center;
+    page-break-after: always;
+  }
+  .cover-logo {
+    width: 140px; height: 140px; margin-bottom: 30px;
+  }
+  .cover h1 { font-size: 42pt; margin-bottom: 12px; }
+  .cover .subtitle { font-size: 16pt; color: #6b7280; margin-bottom: 60px; }
+  .cover .footer { position: absolute; bottom: 30mm; font-size: 11pt; color: #9ca3af; }
+
+  /* ── TOC ── */
+  .toc { page-break-after: always; }
+  .toc ul { list-style: none; margin: 0; padding: 0; }
+  .toc li {
+    border-bottom: 1px dotted #d1d5db; padding: 6px 0;
+    display: flex; justify-content: space-between; font-size: 12pt;
+  }
+  .toc li.h3 { padding-left: 24px; color: #6b7280; font-size: 11pt; }
+
+  /* ── Callouts ── */
+  .tip, .warn, .info {
+    border-left: 4px solid;
+    padding: 10px 14px; margin: 12px 0;
+    border-radius: 0 8px 8px 0;
+    font-size: 11pt; page-break-inside: avoid;
+  }
+  .tip  { background: #f0fdf4; border-color: #10b981; color: #065f46; }
+  .warn { background: #fffbeb; border-color: #f59e0b; color: #92400e; }
+  .info { background: #eff6ff; border-color: #3b82f6; color: #1e40af; }
+  .tip strong, .warn strong, .info strong { color: inherit; }
+
+  /* ── Numbered steps ── */
+  .steps { counter-reset: step; margin: 12px 0; padding: 0; }
+  .steps > li {
+    list-style: none; counter-increment: step;
+    position: relative; padding-left: 36px; margin-bottom: 10px;
+  }
+  .steps > li::before {
+    content: counter(step);
+    position: absolute; left: 0; top: 0;
+    width: 24px; height: 24px; border-radius: 50%;
+    background: #DC2626; color: white;
+    font-size: 11pt; font-weight: 800;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  /* ── Mockups de pantalla ── */
+  .mock-row {
+    display: flex; gap: 20px; align-items: flex-start;
+    margin: 14px 0; page-break-inside: avoid;
+  }
+  .mock-row > .mock { flex-shrink: 0; }
+  .mock-row > .desc { flex: 1; font-size: 11pt; }
+
+  .mock {
+    width: 200px; background: #070D1F; border-radius: 18px;
+    padding: 8px; border: 2px solid #1a1a1a;
+    color: #f9fafb; font-family: -apple-system, sans-serif;
+    overflow: hidden;
+  }
+  .mock-inner { background: #070D1F; border-radius: 12px; padding: 10px; font-size: 8pt; }
+  .mock-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; }
+  .mock-greet { font-size: 6pt; color: rgba(249,250,251,0.55); }
+  .mock-name { font-size: 11pt; font-weight: 800; color: #fff; }
+  .mock-actions { display: flex; gap: 5px; }
+  .mock-circle { width: 18px; height: 18px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 7pt; flex-shrink: 0; }
+  .mock-bell { background: rgba(255,255,255,0.08); }
+  .mock-tabs { display: flex; gap: 2px; margin-bottom: 8px; }
+  .mock-tab {
+    flex: 1; padding: 4px 2px; text-align: center; font-size: 6pt;
+    color: rgba(249,250,251,0.55); border-radius: 6px;
+  }
+  .mock-tab.active { background: rgba(240,180,41,0.15); color: #F0B429; }
+  .mock-cal {
+    background: rgba(255,255,255,0.05); border-radius: 8px; padding: 8px;
+    margin-bottom: 6px;
+  }
+  .mock-cal-hdr { text-align: center; font-size: 8pt; font-weight: 700; color: #F0B429; margin-bottom: 4px; }
+  .mock-cal-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 1px; }
+  .mock-day {
+    aspect-ratio: 1; display: flex; align-items: center; justify-content: center;
+    font-size: 6pt; color: #f9fafb; border-radius: 3px;
+  }
+  .mock-day.other { color: rgba(249,250,251,0.28); }
+  .mock-day.today { background: #F0B429; color: #000; font-weight: 800; }
+  .mock-day.vac { background-color: rgba(75,159,255,0.2); }
+  .mock-day.vac-r { background: #10B98133; }
+  .mock-day.vac-p { background: #EC489933; }
+  .mock-card {
+    background: rgba(255,255,255,0.05); border-radius: 6px;
+    padding: 6px; margin-bottom: 4px; font-size: 7pt;
+  }
+  .mock-badge {
+    display: inline-block; padding: 1px 6px; border-radius: 6px;
+    font-size: 6pt; font-weight: 800;
+  }
+  .mock-badge.gold { background: rgba(240,180,41,0.2); color: #F0B429; }
+  .mock-badge.blue { background: rgba(75,159,255,0.2); color: #4B9FFF; }
+  .mock-badge.green { background: rgba(16,185,129,0.2); color: #10B981; }
+  .mock-btn {
+    background: linear-gradient(135deg,#F0B429,#D49010); color: #000;
+    padding: 4px 8px; border-radius: 6px; font-size: 7pt; font-weight: 800;
+    text-align: center; margin-top: 4px;
+  }
+  .mock-btn-ghost {
+    background: rgba(255,255,255,0.06); color: #fff;
+    border: 1px solid rgba(255,255,255,0.1);
+    padding: 4px 8px; border-radius: 6px; font-size: 7pt;
+    text-align: center; margin-top: 4px;
+  }
+
+  /* ── Sección ── */
+  section { page-break-inside: avoid; margin-bottom: 14px; }
+  .new-page { page-break-before: always; }
+
+  /* ── Icono del calendario en cover ── */
+  .icon-cover {
+    width: 140px; height: 140px;
+    background: linear-gradient(135deg, #fff, #f0f1f4);
+    border-radius: 26px;
+    border: 2px solid #1a1a1a;
+    position: relative;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.15);
+  }
+  .icon-cover::before {
+    content: ''; position: absolute; top: -8px; left: 40px;
+    width: 8px; height: 22px; background: #1a1a1a; border-radius: 4px;
+  }
+  .icon-cover::after {
+    content: ''; position: absolute; top: -8px; right: 40px;
+    width: 8px; height: 22px; background: #1a1a1a; border-radius: 4px;
+  }
+  .icon-band {
+    position: absolute; top: 0; left: 0; right: 0; height: 22px;
+    background: linear-gradient(180deg, #EF4444, #C81E1E);
+    border-radius: 24px 24px 0 0;
+  }
+  .icon-plane {
+    position: absolute; top: 50%; left: 50%;
+    transform: translate(-50%, -40%) rotate(-30deg);
+    font-size: 56px; color: #DC2626;
+  }
+
+  /* ── Print ── */
+  @media print {
+    body { font-size: 11pt; }
+    .no-print { display: none; }
+    a { color: inherit; text-decoration: none; }
+  }
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- COVER -->
+<!-- ═══════════════════════════════════════ -->
+<div class="cover">
+  <div class="icon-cover">
+    <div class="icon-band"></div>
+    <div class="icon-plane">✈</div>
+  </div>
+  <h1>Compensatorios &amp; Vacaciones</h1>
+  <div class="subtitle">Manual de Usuario</div>
+  <div class="footer">Versión 1.0 — 2026</div>
+</div>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- TABLA DE CONTENIDOS -->
+<!-- ═══════════════════════════════════════ -->
+<section class="toc">
+  <h1>Tabla de contenidos</h1>
+  <ul style="margin-top:24px">
+    <li><span>1. ¿Qué es esta app?</span></li>
+    <li><span>2. Acceso por primera vez</span></li>
+    <li><span>3. Crear tu perfil</span></li>
+    <li><span>4. Instalar la app en tu celular</span></li>
+    <li><span>5. Activar notificaciones</span></li>
+    <li><span>6. Conocer la pantalla principal</span></li>
+    <li><span>7. Pestaña Calendario</span></li>
+    <li><span>8. Pestaña Compensatorios</span></li>
+    <li class="h3"><span>8.1 Concepto del Banco</span></li>
+    <li class="h3"><span>8.2 Agregar al banco</span></li>
+    <li class="h3"><span>8.3 Solicitar un día desde el banco</span></li>
+    <li class="h3"><span>8.4 Solicitar día directo (sin banco)</span></li>
+    <li class="h3"><span>8.5 Cancelar una solicitud</span></li>
+    <li><span>9. Pestaña Vacaciones</span></li>
+    <li><span>10. Pestaña Equipo</span></li>
+    <li><span>11. Centro de notificaciones</span></li>
+    <li><span>12. Editar tu perfil</span></li>
+    <li><span>13. Modo Administrador</span></li>
+    <li><span>14. Preguntas frecuentes</span></li>
+  </ul>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 1. ¿QUÉ ES? -->
+<!-- ═══════════════════════════════════════ -->
+<section class="new-page">
+  <h2>1. ¿Qué es esta app?</h2>
+  <p>Es una aplicación web diseñada para que el equipo gestione de forma simple y transparente:</p>
+  <ul>
+    <li><strong>Días compensatorios</strong> — los días que se generan al trabajar tiempo extra, fines de semana o feriados, y que después se pueden usar como día libre.</li>
+    <li><strong>Vacaciones</strong> — los períodos de descanso planificados a lo largo del año.</li>
+  </ul>
+  <p>Toda la información se actualiza en tiempo real entre todos los integrantes. Si alguien carga, modifica o cancela algo, los demás se enteran al instante.</p>
+
+  <div class="tip">
+    <strong>💡 ¿Para quién es?</strong> Para todos los miembros del equipo. Cada uno administra sus propios días. El administrador (jefe) tiene funcionalidades extras para autorizar pedidos y ver un panorama general.
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 2. ACCESO POR PRIMERA VEZ -->
+<!-- ═══════════════════════════════════════ -->
+<section>
+  <h2>2. Acceso por primera vez</h2>
+  <p>La app vive en internet, no se descarga de ninguna tienda. Para acceder:</p>
+  <ol class="steps">
+    <li>Pedile el <strong>link de la app</strong> al administrador (lo va a compartir por WhatsApp o mail).</li>
+    <li>Abrilo desde el navegador del celular (Chrome en Android, Safari en iPhone).</li>
+    <li>La primera vez que entres, vas a ver la pantalla de bienvenida para crear tu perfil.</li>
+  </ol>
+
+  <div class="info">
+    <strong>ℹ️ Importante:</strong> usá <strong>siempre el mismo dispositivo</strong> y el mismo navegador para entrar. Tu identidad queda vinculada a ese celular específico. Si limpiás los datos del navegador o desinstalás la app, vas a perder el acceso a tu cuenta y tendrás que pedirle al administrador que te elimine para volver a crear el perfil.
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 3. CREAR PERFIL -->
+<!-- ═══════════════════════════════════════ -->
+<section>
+  <h2>3. Crear tu perfil</h2>
+  <div class="mock-row">
+    <div class="mock"><div class="mock-inner">
+      <div style="text-align:center;margin-bottom:10px">
+        <div style="font-size:18pt">📅</div>
+        <div style="font-size:9pt;font-weight:800">Compensatorios y Vacaciones</div>
+      </div>
+      <div style="background:rgba(75,159,255,0.1);border:1px solid rgba(75,159,255,0.25);border-radius:6px;padding:6px;font-size:6pt;color:#4B9FFF;margin-bottom:8px">
+        👋 ¡Bienvenido! Es la primera vez que entrás. Creá tu perfil.
+      </div>
+      <div style="text-align:center;margin:8px 0">
+        <div style="width:48px;height:48px;border-radius:50%;background:rgba(255,255,255,0.06);border:2px dashed rgba(255,255,255,0.15);display:inline-flex;align-items:center;justify-content:center;font-size:14pt">📷</div>
+        <div style="font-size:5pt;color:rgba(249,250,251,0.4);margin-top:3px">Tocá para agregar foto</div>
+      </div>
+      <div style="font-size:6pt;color:rgba(249,250,251,0.55);margin-bottom:2px">NOMBRE Y APELLIDO</div>
+      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:4px;font-size:6pt;color:rgba(249,250,251,0.3);margin-bottom:6px">Ej: Juan Pérez</div>
+      <div style="font-size:6pt;color:rgba(249,250,251,0.55);margin-bottom:2px">WHATSAPP</div>
+      <div style="background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);border-radius:6px;padding:4px;font-size:6pt;color:rgba(249,250,251,0.3);margin-bottom:6px">5491112345678</div>
+      <div style="font-size:6pt;color:rgba(249,250,251,0.55);margin-bottom:3px">ELEGÍ TU COLOR</div>
+      <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:3px;margin-bottom:6px">
+        <div style="width:14px;height:14px;border-radius:50%;background:#4B9FFF;border:2px solid #fff"></div>
+        <div style="width:14px;height:14px;border-radius:50%;background:#F0B429"></div>
+        <div style="width:14px;height:14px;border-radius:50%;background:#10B981"></div>
+        <div style="width:14px;height:14px;border-radius:50%;background:#8B5CF6"></div>
+        <div style="width:14px;height:14px;border-radius:50%;background:#EF4444"></div>
+      </div>
+      <div class="mock-btn">Crear mi perfil →</div>
+      <div class="mock-btn-ghost">🔑 Soy administrador</div>
+    </div></div></div>
+    <div class="desc">
+      <h3>Datos a completar</h3>
+      <ol class="steps">
+        <li><strong>Foto (opcional):</strong> tocá el círculo con la cámara para elegir una foto de tu galería. Si no querés foto, queda tu inicial.</li>
+        <li><strong>Nombre y apellido:</strong> escribí tu nombre real como querés que aparezca al equipo.</li>
+        <li><strong>WhatsApp:</strong> tu número con código de país, sin signos ni espacios. Ejemplo argentino: <code>5491112345678</code> (54 + 9 + código de área + número).</li>
+        <li><strong>Color:</strong> elegí un color que te identifique. Se va a usar en el calendario para pintar tus vacaciones y los puntitos de tus compensatorios.</li>
+        <li><strong>Tocá "Crear mi perfil"</strong> y listo.</li>
+      </ol>
+    </div>
+  </div>
+
+  <div class="warn">
+    <strong>⚠️ El botón "🔑 Soy administrador"</strong> es solo para el jefe del equipo. Si vos sos un usuario normal, ignoralo y tocá "Crear mi perfil".
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 4. INSTALAR -->
+<!-- ═══════════════════════════════════════ -->
+<section class="new-page">
+  <h2>4. Instalar la app en tu celular</h2>
+  <p>La app funciona desde el navegador, pero te conviene instalarla como una app real para tenerla en la pantalla de inicio del celular. Es gratis y no ocupa espacio (no se descarga de ninguna tienda).</p>
+
+  <h3>📱 En iPhone (Safari)</h3>
+  <ol class="steps">
+    <li>Abrí la app desde Safari.</li>
+    <li>Tocá el botón <strong>Compartir</strong> (el cuadrado con flecha hacia arriba, abajo en la barra).</li>
+    <li>Bajá en el menú y tocá <strong>"Agregar a inicio"</strong>.</li>
+    <li>Tocá <strong>"Agregar"</strong> arriba a la derecha.</li>
+  </ol>
+  <p>El ícono aparece en la pantalla principal como una app más.</p>
+
+  <h3>🤖 En Android (Chrome)</h3>
+  <ol class="steps">
+    <li>Abrí la app desde Chrome.</li>
+    <li>Al rato te aparece un cartelito ofreciendo <strong>"Instalar app"</strong>. Tocalo.</li>
+    <li>Si no aparece: tocá los <strong>3 puntitos</strong> arriba a la derecha → <strong>"Agregar a pantalla de inicio"</strong>.</li>
+    <li>Confirmá <strong>"Instalar"</strong>.</li>
+  </ol>
+
+  <div class="tip">
+    <strong>💡 Ventajas de tenerla instalada:</strong>
+    <ul style="margin-top:4px">
+      <li>Acceso de un toque desde la pantalla principal</li>
+      <li>Pantalla completa, sin barra del navegador</li>
+      <li>Recibís las notificaciones del sistema cuando hay novedades</li>
+    </ul>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 5. NOTIFICACIONES -->
+<!-- ═══════════════════════════════════════ -->
+<section>
+  <h2>5. Activar notificaciones</h2>
+  <p>A los pocos segundos de entrar a la app, te aparece un banner ofreciendo activar las notificaciones del sistema. Te recomendamos aceptarlas.</p>
+
+  <h3>¿Para qué sirven?</h3>
+  <ul>
+    <li>Si sos <strong>usuario normal:</strong> te avisamos cuando el administrador autoriza o deniega tus compensatorios, o cuando algún compañero del equipo carga vacaciones.</li>
+    <li>Si sos <strong>administrador:</strong> te avisamos cuando un usuario te solicita un compensatorio, lo cancela, o carga vacaciones.</li>
+  </ul>
+
+  <div class="info">
+    <strong>ℹ️</strong> Si rechazás el banner por error, podés activarlas después desde el menú de perfil (tocando tu avatar arriba a la derecha → "🔔 Activar notificaciones").
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 6. PANTALLA PRINCIPAL -->
+<!-- ═══════════════════════════════════════ -->
+<section class="new-page">
+  <h2>6. Conocer la pantalla principal</h2>
+  <div class="mock-row">
+    <div class="mock"><div class="mock-inner">
+      <div class="mock-header">
+        <div>
+          <div class="mock-greet">Buenos días</div>
+          <div class="mock-name">Juan</div>
+        </div>
+        <div class="mock-actions">
+          <div class="mock-circle mock-bell" style="position:relative">🔔
+            <div style="position:absolute;top:-2px;right:-2px;background:#EF4444;color:#fff;font-size:5pt;font-weight:800;border-radius:50%;width:9px;height:9px;display:flex;align-items:center;justify-content:center">2</div>
+          </div>
+          <div class="mock-circle" style="background:#4B9FFF">J</div>
+        </div>
+      </div>
+      <div class="mock-tabs">
+        <div class="mock-tab active">📅<br>Cal.</div>
+        <div class="mock-tab">⏱️<br>Comp.</div>
+        <div class="mock-tab">🌴<br>Vac.</div>
+        <div class="mock-tab">👥<br>Equipo</div>
+      </div>
+      <div class="mock-cal">
+        <div class="mock-cal-hdr">Mayo 2026</div>
+        <div class="mock-cal-grid">
+          <div class="mock-day other">26</div><div class="mock-day other">27</div><div class="mock-day other">28</div><div class="mock-day other">29</div><div class="mock-day other">30</div><div class="mock-day">1</div><div class="mock-day">2</div>
+          <div class="mock-day">3</div><div class="mock-day">4</div><div class="mock-day">5</div><div class="mock-day">6</div><div class="mock-day">7</div><div class="mock-day">8</div><div class="mock-day">9</div>
+        </div>
+      </div>
+    </div></div></div>
+    <div class="desc">
+      <h3>Las partes del header</h3>
+      <ul>
+        <li><strong>Saludo y tu nombre</strong> a la izquierda.</li>
+        <li><strong>🔔 Campana</strong>: indica notificaciones nuevas. Si tiene un círculo rojo con un número, son cosas que pasaron y aún no leíste. Tocala para abrir el centro de notificaciones.</li>
+        <li><strong>Tu avatar</strong> a la derecha (foto o inicial con tu color). Tocalo para abrir tu menú de perfil.</li>
+      </ul>
+
+      <h3>Las 4 pestañas</h3>
+      <ul>
+        <li><strong>📅 Calendario:</strong> vista mensual con todos los eventos del equipo.</li>
+        <li><strong>⏱️ Compens.:</strong> tu banco de compensatorios y tus solicitudes activas.</li>
+        <li><strong>🌴 Vacaciones:</strong> tus períodos de vacaciones cargados.</li>
+        <li><strong>👥 Equipo:</strong> lista de todos los integrantes con sus contadores.</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 7. CALENDARIO -->
+<!-- ═══════════════════════════════════════ -->
+<section class="new-page">
+  <h2>7. Pestaña Calendario</h2>
+  <div class="mock-row">
+    <div class="mock"><div class="mock-inner">
+      <div class="mock-cal">
+        <div class="mock-cal-hdr">‹ Mayo 2026 ›</div>
+        <div class="mock-cal-grid">
+          <div class="mock-day other">26</div><div class="mock-day other">27</div><div class="mock-day other">28</div><div class="mock-day other">29</div><div class="mock-day other">30</div><div class="mock-day">1</div><div class="mock-day">2</div>
+          <div class="mock-day">3</div><div class="mock-day">4</div><div class="mock-day vac-r">5</div><div class="mock-day vac-r">6</div><div class="mock-day vac-r">7</div><div class="mock-day vac-r">8</div><div class="mock-day">9</div>
+          <div class="mock-day">10</div><div class="mock-day">11</div><div class="mock-day vac-p">12</div><div class="mock-day vac-p">13</div><div class="mock-day">14</div><div class="mock-day vac">15</div><div class="mock-day vac">16</div>
+          <div class="mock-day vac">17</div><div class="mock-day vac">18</div><div class="mock-day vac">19</div><div class="mock-day vac">20</div><div class="mock-day vac">21</div><div class="mock-day vac">22</div><div class="mock-day">23</div>
+          <div class="mock-day">24</div><div class="mock-day">25</div><div class="mock-day">26</div><div class="mock-day">27</div><div class="mock-day today">28</div><div class="mock-day">29</div><div class="mock-day">30</div>
+        </div>
+      </div>
+      <div class="mock-card">
+        <div style="font-weight:800;color:#F0B429;margin-bottom:3px">Jueves 28 de mayo</div>
+        <div style="font-size:6pt;color:rgba(249,250,251,0.55)">Sin eventos este día</div>
+      </div>
+    </div></div></div>
+    <div class="desc">
+      <h3>Cómo leer el calendario</h3>
+      <ul>
+        <li><strong>Día con fondo dorado:</strong> el día de hoy.</li>
+        <li><strong>Días pintados de color:</strong> indican vacaciones. <em>El color es el del avatar del usuario que está de vacaciones</em>, así sabés de quién es a simple vista.</li>
+        <li><strong>Puntitos debajo del número:</strong> indican compensatorios solicitados para ese día (mismo código de color por usuario).</li>
+        <li><strong>Flechas ‹ ›</strong> arriba: cambian de mes.</li>
+        <li><strong>Tocar un día:</strong> abre el panel debajo del calendario con los eventos de ese día.</li>
+      </ul>
+
+      <h3>Botones rápidos</h3>
+      <p>Debajo del calendario hay dos botones para crear eventos directamente sin tener que ir a otra pestaña: <strong>+ Compensatorio</strong> y <strong>+ Vacaciones</strong>.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 8. COMPENSATORIOS -->
+<!-- ═══════════════════════════════════════ -->
+<section class="new-page">
+  <h2>8. Pestaña Compensatorios</h2>
+
+  <h3>8.1 Concepto del Banco</h3>
+  <p>Los compensatorios funcionan como un <strong>banco personal</strong>. Cada vez que generás uno (por trabajar un fin de semana, feriado, hora extra, etc.), lo cargás en tu banco. Después, cuando querés tomarte un día libre, sacás uno de tu banco y se lo pedís al jefe.</p>
+
+  <div class="info">
+    <strong>ℹ️ Diferencia con el flujo directo:</strong> también podés solicitar un día compensatorio "directo" sin pasarlo primero por el banco. Pero el flujo recomendado es siempre cargarlo al banco apenas lo generás, así no te olvidás.
+  </div>
+
+  <h3>8.2 Agregar al banco</h3>
+  <ol class="steps">
+    <li>Andá a la pestaña <strong>⏱️ Compens.</strong></li>
+    <li>Tocá el botón <strong>"🏦 Agregar al banco"</strong>.</li>
+    <li>Elegí el <strong>día en que generaste el compensatorio</strong> (el día que trabajaste extra).</li>
+    <li>Escribí un motivo (opcional): por ejemplo "Trabajé el sábado 15/05".</li>
+    <li>Tocá <strong>"Agregar"</strong>.</li>
+  </ol>
+  <p>El compensatorio queda en tu banco con estado <span class="mock-badge gold">Disponible</span>, listo para usar cuando quieras.</p>
+
+  <h3>8.3 Solicitar un día desde el banco</h3>
+  <ol class="steps">
+    <li>En la pestaña <strong>Compens.</strong>, buscá en la sección <strong>🏦 Mi banco</strong> el compensatorio que querés usar.</li>
+    <li>Tocá <strong>"Solicitar →"</strong> al lado del compensatorio.</li>
+    <li>Elegí <strong>qué día querés tomar</strong> libre.</li>
+    <li>Podés agregar un motivo extra (opcional).</li>
+    <li>Tocá <strong>"📲 Solicitar por WA"</strong>.</li>
+  </ol>
+  <p>Se abre WhatsApp con un mensaje prellenado al administrador. Solo tenés que tocar enviar. El compensatorio cambia su estado a <span class="mock-badge blue">Solicitado</span>.</p>
+
+  <h3>8.4 Solicitar día directo (sin banco)</h3>
+  <p>Si nunca cargaste el compensatorio al banco pero ya querés pedir un día puntual, podés usar el botón <strong>"📅 Solicitar día directo"</strong> al final de la pestaña. Funciona igual que el flujo desde el banco, pero salteándose el paso intermedio.</p>
+
+  <h3>8.5 Cancelar una solicitud</h3>
+  <p>Si te arrepentiste o cambiaste de plan, al lado de cada solicitud activa hay un botón <strong>❌</strong>. Al tocarlo:</p>
+  <ul>
+    <li>Si la solicitud vino del banco → el compensatorio <strong>vuelve a tu banco</strong> para usarlo otro día.</li>
+    <li>Si fue una solicitud directa → se <strong>elimina</strong>.</li>
+    <li>En ambos casos, se abre WhatsApp con un mensaje prellenado para avisarle al jefe.</li>
+  </ul>
+
+  <h3>Estados posibles</h3>
+  <ul>
+    <li><span class="mock-badge gold">Disponible</span> &nbsp; en el banco, sin usar todavía</li>
+    <li><span class="mock-badge gold">Pendiente</span> &nbsp; creado, pero no enviado por WA</li>
+    <li><span class="mock-badge blue">Solicitado</span> &nbsp; WhatsApp enviado, esperando respuesta del jefe</li>
+    <li><span class="mock-badge green">Autorizado</span> &nbsp; el jefe lo aprobó</li>
+    <li><span style="background:rgba(239,68,68,0.2);color:#EF4444;display:inline-block;padding:1px 6px;border-radius:6px;font-size:6pt;font-weight:800">Denegado</span> &nbsp; el jefe lo rechazó</li>
+  </ul>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 9. VACACIONES -->
+<!-- ═══════════════════════════════════════ -->
+<section class="new-page">
+  <h2>9. Pestaña Vacaciones</h2>
+  <p>Acá cargás tus períodos de descanso planificados. A diferencia de los compensatorios, las vacaciones <strong>no necesitan ser autorizadas por el jefe desde la app</strong> (se asume que ya las arreglaste previamente). Solo las registrás para que el equipo se entere.</p>
+
+  <h3>Cómo cargar vacaciones</h3>
+  <ol class="steps">
+    <li>Andá a la pestaña <strong>🌴 Vacaciones</strong>.</li>
+    <li>Tocá <strong>"+ Agregar vacaciones"</strong>.</li>
+    <li>Elegí el <strong>día de inicio</strong> y el <strong>día de fin</strong>.</li>
+    <li>Opcionalmente, agregá una nota (por ejemplo "Vacaciones de invierno", "Viaje a la costa", etc.).</li>
+    <li>Tocá <strong>"Guardar"</strong>.</li>
+  </ol>
+
+  <div class="warn">
+    <strong>⚠️ Conflictos de fecha:</strong> si alguien del equipo ya tiene vacaciones que se superponen con las que querés cargar, la app <strong>no te permite guardar</strong>. Vas a ver un mensaje en rojo indicando con quién es el conflicto y en qué fechas. Para destrabarlo: hablalo primero con esa persona o esperá a elegir otro período.
+  </div>
+
+  <h3>Modificar o eliminar</h3>
+  <p>Una vez cargadas, podés eliminar tus propias vacaciones tocando el botón <strong>🗑️</strong>. Si necesitás cambiar las fechas, eliminás y volvés a cargar.</p>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 10. EQUIPO -->
+<!-- ═══════════════════════════════════════ -->
+<section>
+  <h2>10. Pestaña Equipo</h2>
+  <p>Esta pestaña muestra a todos los integrantes del equipo en formato de cards. De cada uno ves:</p>
+  <ul>
+    <li><strong>Avatar</strong> con su color y foto (si la cargó)</li>
+    <li><strong>Nombre</strong> — los administradores tienen un 🔑 al lado</li>
+    <li><strong>Resumen público:</strong> compensatorios autorizados, vacaciones cargadas y pedidos pendientes. <em>Los compensatorios en el banco personal NO se muestran a otros usuarios</em>; solo vos y el administrador los ven.</li>
+    <li><strong>Contadores</strong> a la derecha (Comp y Vac)</li>
+  </ul>
+
+  <div class="tip">
+    <strong>💡</strong> Es la pantalla más útil para ver de un vistazo cómo está el equipo. Si vos sos administrador, además vas a ver un botón 🗑️ al lado de cada usuario normal para poder eliminarlo del equipo si fuera necesario.
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 11. NOTIFICACIONES -->
+<!-- ═══════════════════════════════════════ -->
+<section class="new-page">
+  <h2>11. Centro de notificaciones</h2>
+  <p>Tocando la <strong>🔔 campana</strong> en el header se abre un panel con el historial de todo lo que pasó en el equipo: nuevas solicitudes, autorizaciones, cancelaciones, vacaciones cargadas, etc.</p>
+
+  <h3>Cómo leerlo</h3>
+  <ul>
+    <li><strong>Eventos resaltados en azul:</strong> son las novedades que aún no leíste (lo que cuenta el badge rojo de la campana).</li>
+    <li><strong>Cada evento muestra:</strong> ícono según tipo, nombre del actor, descripción y cuánto tiempo pasó ("ahora", "hace 2h", "hace 3d", etc.).</li>
+    <li><strong>Al abrir el panel</strong>, todos los eventos se marcan automáticamente como leídos.</li>
+  </ul>
+
+  <h3>Toast en tiempo real</h3>
+  <p>Si tenés la app abierta y algo nuevo te involucra (por ejemplo: el jefe autoriza tu compensatorio), te aparece arriba un <strong>cartelito con ícono y descripción</strong> durante 5 segundos. Tocándolo se abre el centro de notificaciones.</p>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 12. EDITAR PERFIL -->
+<!-- ═══════════════════════════════════════ -->
+<section>
+  <h2>12. Editar tu perfil</h2>
+  <p>Podés cambiar tu nombre, color y foto en cualquier momento:</p>
+  <ol class="steps">
+    <li>Tocá tu <strong>avatar</strong> arriba a la derecha.</li>
+    <li>En el menú que se abre, tocá <strong>"✏️ Editar mi perfil"</strong>.</li>
+    <li>Modificá lo que quieras: foto, nombre, WhatsApp o color.</li>
+    <li>Tocá <strong>"Guardar"</strong>.</li>
+  </ol>
+  <p>Los cambios se reflejan inmediatamente para todos los integrantes del equipo.</p>
+
+  <div class="info">
+    <strong>ℹ️</strong> Tu identidad sigue siendo la misma (no perdés tu historial de compensatorios y vacaciones), solo cambiás cómo te ven los demás.
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 13. MODO ADMIN -->
+<!-- ═══════════════════════════════════════ -->
+<section class="new-page">
+  <h2>13. Modo Administrador</h2>
+  <p>El modo administrador es para una o más personas del equipo (típicamente el jefe). Para activarlo necesitás un <strong>código secreto</strong> que se define al configurar la app.</p>
+
+  <h3>Activar el modo administrador</h3>
+  <ol class="steps">
+    <li>Tocá tu <strong>avatar</strong> arriba a la derecha.</li>
+    <li>Tocá <strong>"🔑 Activar modo administrador"</strong>.</li>
+    <li>Ingresá el código de administrador.</li>
+    <li>Tocá <strong>"Activar →"</strong>.</li>
+  </ol>
+  <p>Una vez activado, vas a ver un 🔑 al lado de tu nombre en el header, y se desbloquean las funciones de admin.</p>
+
+  <div class="tip">
+    <strong>💡 Alternativa:</strong> en la pantalla de creación de perfil (primera vez que entrás), también podés tocar el botón "🔑 Soy administrador" para crear tu perfil directamente como admin.
+  </div>
+
+  <h3>Funciones extras del administrador</h3>
+
+  <h4>Autorizar / denegar compensatorios</h4>
+  <p>Cuando un usuario te manda un WhatsApp pidiendo un día compensatorio, abrís la app y vas a la pestaña <strong>Compens.</strong> Vas a ver "Compensatorios del equipo" con las solicitudes pendientes. Tocando el botón <strong>✅</strong> al lado de una solicitud:</p>
+  <ul>
+    <li>Se abre un modal con el detalle (quién, qué día, motivo).</li>
+    <li>Podés <strong>Autorizar</strong> o <strong>Denegar</strong>.</li>
+    <li>Una vez decidido, se abre WhatsApp automáticamente con un mensaje prellenado para avisarle al usuario.</li>
+  </ul>
+
+  <h4>Ver el banco del equipo</h4>
+  <p>En la misma pestaña Compens., también ves un resumen con cuántos compensatorios disponibles tiene cada miembro en su banco. Útil para tener una idea general de la "deuda" del equipo.</p>
+
+  <h4>Timeline panorámico de 12 meses</h4>
+  <p>En la pestaña <strong>Vacaciones</strong>, en lugar de "Mis vacaciones" vas a ver <strong>"Vacaciones del equipo"</strong>: un gráfico tipo planificador de obra con un mes por columna y una fila por persona. Las vacaciones aparecen como barras coloreadas con el color del avatar de cada uno. Podés scrollear horizontalmente para ver los 12 meses, y la línea roja vertical te muestra dónde estás hoy.</p>
+
+  <h4>Generar reporte PDF en cualquier momento</h4>
+  <p>Desde tu menú de perfil tenés la opción <strong>"📄 Generar reporte PDF"</strong>. Al tocarla, se abre una pestaña nueva con el reporte completo del equipo (resumen general, detalle por usuario, timeline anual, solicitudes pendientes) y el navegador te muestra el diálogo de impresión. Elegí <strong>"Guardar como PDF"</strong> y lo descargás al instante.</p>
+
+  <h4>Eliminar usuarios huérfanos</h4>
+  <p>Si algún miembro se cambió de celular o ya no está en el equipo, en la pestaña <strong>Equipo</strong> vas a ver un botón 🗑️ al lado de cada usuario normal (no aparece para vos ni para otros admins). Al tocarlo se confirma la eliminación y se borran todos los compensatorios y vacaciones de esa persona.</p>
+
+  <div class="warn">
+    <strong>⚠️ Eliminar es definitivo.</strong> Si borrás un usuario, no hay forma de recuperar su historial.
+  </div>
+
+  <h3>Reporte semanal automático por mail</h3>
+  <p>Todos los <strong>miércoles a las 06:00 de la mañana</strong>, te llega automáticamente un mail con el mismo reporte PDF que podés generar manualmente. Sirve para:</p>
+  <ul>
+    <li>Ver de un vistazo cómo está el equipo a principio de semana</li>
+    <li>Tener un backup por si en algún momento la app no anda</li>
+    <li>Planificar las vacaciones del equipo</li>
+  </ul>
+
+  <h3>Desactivar el modo administrador</h3>
+  <p>Si en algún momento querés volver a modo usuario normal: avatar → <strong>"🔓 Desactivar modo administrador"</strong>. Podés reactivarlo en cualquier momento con el código.</p>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- 14. FAQ -->
+<!-- ═══════════════════════════════════════ -->
+<section class="new-page">
+  <h2>14. Preguntas frecuentes</h2>
+
+  <h4>¿Necesito descargar algo de Play Store o App Store?</h4>
+  <p>No. La app vive en internet. Solo necesitás abrir el link en tu navegador. Opcionalmente la podés "instalar" como app en la pantalla principal (ver sección 4).</p>
+
+  <h4>¿Funciona sin internet?</h4>
+  <p>La interfaz carga sin internet (queda guardada en el celular), pero los datos del equipo necesitan conexión para sincronizarse. Si cargás algo sin internet, se va a enviar cuando vuelva la conexión.</p>
+
+  <h4>Cambié mi nombre y ahora aparezco con dos perfiles</h4>
+  <p>Eso no debería pasar — cambiar tu nombre desde "Editar mi perfil" no crea un usuario nuevo, solo lo modifica. Si ves dos perfiles tuyos, probablemente borraste los datos del navegador en algún momento. Pedile al admin que elimine el duplicado.</p>
+
+  <h4>Perdí mi celular / formatié el mío. ¿Puedo recuperar mi cuenta?</h4>
+  <p>No directamente. Tu identidad estaba vinculada a ese dispositivo específico. Tenés que crear un perfil nuevo desde el celular nuevo, y pedirle al administrador que elimine tu perfil viejo. Las solicitudes y vacaciones que tenías cargadas se pierden.</p>
+
+  <h4>¿Pueden los demás ver mis datos personales?</h4>
+  <p>Lo que ven los demás del equipo es:</p>
+  <ul>
+    <li>Tu nombre, foto (si la cargaste) y color del avatar</li>
+    <li>Tus <strong>vacaciones</strong> (para coordinar)</li>
+    <li>Tus <strong>compensatorios autorizados o solicitados</strong> (los que afectan al equipo)</li>
+  </ul>
+  <p>Lo que <strong>NO ven</strong> los demás:</p>
+  <ul>
+    <li>Tu <strong>banco de compensatorios</strong> (los que generaste pero todavía no solicitaste). Es información personal — solo vos y el administrador la ven.</li>
+    <li>Tu <strong>número de WhatsApp</strong>. Solo lo usa el sistema internamente para que el admin pueda avisarte por WA cuando autoriza o deniega tus pedidos.</li>
+  </ul>
+
+  <h4>¿Qué pasa con el "código de administrador"? ¿Es seguro?</h4>
+  <p>El código sirve únicamente para que alguien pueda activar el modo admin. No da acceso a ningún dato extra que no se vea normalmente. Lo que sí desbloquea son acciones especiales (autorizar pedidos, eliminar usuarios). Tratalo como una contraseña: no la compartas con quien no debe ser admin.</p>
+
+  <h4>El jefe no me responde la solicitud por WhatsApp</h4>
+  <p>Si después de un tiempo razonable no obtenés respuesta, podés cancelar la solicitud (botón ❌) y volver a pedirlo en otro momento. La app no automatiza recordatorios — eso depende de la comunicación humana.</p>
+
+  <h4>¿Puedo borrar mi cuenta yo mismo?</h4>
+  <p>No directamente. Por seguridad, solo el administrador puede eliminar usuarios del equipo. Si querés salir, pedile que te elimine.</p>
+
+  <h4>¿Se actualiza la app automáticamente?</h4>
+  <p>Sí. Cada vez que se publica una mejora, la app se actualiza sola en tu celular en menos de un minuto, sin que tengas que hacer nada. Si la tenés abierta cuando llega una versión nueva, vas a ver un cartelito breve que dice "Actualizando a nueva versión..." y se recarga sola.</p>
+</section>
+
+<!-- ═══════════════════════════════════════ -->
+<!-- CIERRE -->
+<!-- ═══════════════════════════════════════ -->
+<section style="margin-top:40px;padding-top:20px;border-top:2px solid #DC2626;text-align:center;color:#6b7280;font-size:11pt">
+  <p><strong>Listo, esa es toda la app.</strong></p>
+  <p>Si te queda alguna duda, consultale al administrador del equipo.</p>
+  <p style="margin-top:24px;font-size:9pt">— Fin del manual —</p>
+</section>
+
+</body>
+</html>

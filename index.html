@@ -355,6 +355,9 @@ select.ifield{cursor:pointer}
       <div class="color-grid" id="colorPicker"></div>
     </div>
     <button class="btn btn-gold" onclick="doLogin()">Crear mi perfil →</button>
+    <button class="btn btn-ghost" onclick="openAdminCreateProfile()" style="display:flex;align-items:center;justify-content:center;gap:7px">
+      <span style="font-size:17px">🔑</span> Soy administrador
+    </button>
   </div>
 </div>
 
@@ -522,7 +525,7 @@ select.ifield{cursor:pointer}
 <div class="modal-ov" id="modal-admin">
   <div class="modal-sheet">
     <div class="m-handle"></div>
-    <div class="m-title">👑 Modo administrador</div>
+    <div class="m-title">🔑 Modo administrador</div>
     <div style="background:rgba(240,180,41,0.08);border:1px solid rgba(240,180,41,0.25);border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:13px;color:var(--text2);line-height:1.55">
       Activá modo administrador para poder autorizar compensatorios del equipo. Podés desactivarlo cuando quieras.
     </div>
@@ -556,7 +559,7 @@ select.ifield{cursor:pointer}
         ✏️ Editar mi perfil
       </button>
       <button class="btn btn-ghost" id="btn-admin-toggle" onclick="closeModal('modal-user');toggleAdminMode()" style="display:flex;align-items:center;justify-content:center;gap:7px">
-        👑 Activar modo administrador
+        🔑 Activar modo administrador
       </button>
       <button class="btn btn-ghost" id="btn-install-app" onclick="manualInstall()" style="display:none;align-items:center;justify-content:center;gap:7px">
         📲 Instalar app
@@ -784,7 +787,9 @@ function pickColor(c, el) {
 // ── Login (crear perfil — solo primera vez) ──
 let pendingPhoto = null; // base64 de la foto cargada en el formulario
 
-function doLogin() {
+function doLogin() { doLoginWith(false); }
+
+function doLoginWith(isAdmin) {
   const name  = v('login-name').trim();
   const phone = normalizePhone(v('login-phone'));
   if (!name)  { toast('Ingresá tu nombre', 'e'); return; }
@@ -794,14 +799,28 @@ function doLogin() {
   if (!uid) { toast('Sin autenticar — recargá la página', 'e'); return; }
   lsSet('uid', uid);
 
-  me = { uid, name, color: selColor, phone, photo: pendingPhoto, isAdmin: false };
+  me = { uid, name, color: selColor, phone, photo: pendingPhoto, isAdmin };
   lsSet('user', JSON.stringify(me));
 
   const record = { name, color: selColor, phone, ts: Date.now() };
   if (pendingPhoto) record.photo = pendingPhoto;
   db.ref(`users/${uid}`).set(record);
+  if (isAdmin) db.ref(`admins/${uid}`).set(true);
   pendingPhoto = null;
   enterApp();
+}
+
+// Botón "🔑 Soy administrador" en la pantalla de crear perfil
+function openAdminCreateProfile() {
+  const name  = v('login-name').trim();
+  const phone = normalizePhone(v('login-phone'));
+  if (!name)  { toast('Completá tu nombre primero', 'e'); return; }
+  if (!phone) { toast('Completá tu WhatsApp primero', 'e'); return; }
+  // Marcamos el flujo "crear como admin" en el modal
+  document.getElementById('admin-code-input').value = '';
+  document.getElementById('admin-code-input').dataset.flow = 'create';
+  openModal('modal-admin');
+  setTimeout(() => document.getElementById('admin-code-input').focus(), 250);
 }
 
 // Devuelve el teléfono normalizado (solo dígitos, 8-15) o null
@@ -931,8 +950,9 @@ function toggleAdminMode() {
     updateHeader();
     return;
   }
-  // Activar: pedir código
+  // Activar: pedir código (modo "toggle" sobre usuario existente)
   document.getElementById('admin-code-input').value = '';
+  document.getElementById('admin-code-input').dataset.flow = 'toggle';
   openModal('modal-admin');
   setTimeout(() => document.getElementById('admin-code-input').focus(), 250);
 }
@@ -943,12 +963,20 @@ function confirmAdminLogin() {
   if (code !== adminCode) { toast('Código incorrecto', 'e'); return; }
   closeModal('modal-admin');
 
-  if (!me) return;
-  me.isAdmin = true;
-  lsSet('user', JSON.stringify(me));
-  db.ref(`admins/${me.uid}`).set(true);
-  toast('Modo administrador activado 👑', 's');
-  updateHeader();
+  const flow = document.getElementById('admin-code-input').dataset.flow;
+  if (flow === 'create') {
+    // Crear perfil directamente como admin
+    doLoginWith(true);
+    setTimeout(() => toast('Perfil de administrador creado 🔑', 's'), 600);
+  } else {
+    // Toggle: activar admin en usuario existente
+    if (!me) return;
+    me.isAdmin = true;
+    lsSet('user', JSON.stringify(me));
+    db.ref(`admins/${me.uid}`).set(true);
+    toast('Modo administrador activado 🔑', 's');
+    updateHeader();
+  }
 }
 
 // ── Procesar imagen: resize + compress + base64 ──
@@ -1044,7 +1072,7 @@ function updateHeader() {
   if (!me) return;
   const h = now.getHours();
   document.getElementById('hdr-greet').textContent = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
-  document.getElementById('hdr-name').textContent  = me.name.split(' ')[0] + (me.isAdmin ? ' 👑' : '');
+  document.getElementById('hdr-name').textContent  = me.name.split(' ')[0] + (me.isAdmin ? ' 🔑' : '');
   const av = document.getElementById('hdr-av');
   renderAvatar(av, me);
 }
@@ -1491,7 +1519,7 @@ function renderTeam() {
     return `<div class="member-card">
       <div class="m-av" style="background:${u.color}">${avatarInner}</div>
       <div class="m-info">
-        <div class="m-name">${u.name}${isAdmin?' 👑':''}${isMe?' <span style="font-size:10px;color:var(--text3)">(yo)</span>':''}</div>
+        <div class="m-name">${u.name}${isAdmin?' 🔑':''}${isMe?' <span style="font-size:10px;color:var(--text3)">(yo)</span>':''}</div>
         <div class="m-status">${authComp}/${compList.length} comp. autorizados · ${vacList.length} vac.${pendComp?' · <span style="color:var(--blue)">'+pendComp+' pendiente(s)</span>':''}</div>
       </div>
       <div class="m-counts">
@@ -1616,14 +1644,14 @@ document.getElementById('modal-user').addEventListener('click', function(e) {
 function showUserMenuData() {
   if (!me) return;
   renderAvatar(document.getElementById('um-av'), me);
-  document.getElementById('um-name').textContent = me.name + (me.isAdmin ? ' 👑' : '');
+  document.getElementById('um-name').textContent = me.name + (me.isAdmin ? ' 🔑' : '');
   document.getElementById('um-role').textContent = me.isAdmin ? 'Administrador' : 'Usuario';
   // Botón admin: cambia texto según estado
   const btn = document.getElementById('btn-admin-toggle');
   if (btn) {
     btn.innerHTML = me.isAdmin
       ? '🔓 Desactivar modo administrador'
-      : '👑 Activar modo administrador';
+      : '🔑 Activar modo administrador';
   }
   // Botón "Instalar app" — si hay prompt pendiente, o si es iOS Safari, y no está ya instalada
   const installBtn = document.getElementById('btn-install-app');

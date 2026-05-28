@@ -322,6 +322,10 @@ select.ifield{cursor:pointer}
 
     <div class="ig"><span class="lbl">Nombre y apellido</span><input class="ifield" id="login-name" placeholder="Ej: Juan Pérez" autocomplete="off" oninput="updatePhotoLetter()"></div>
     <div class="ig">
+      <span class="lbl">WhatsApp <span style="color:var(--text3);font-weight:400">(con código de país, sin +)</span></span>
+      <input class="ifield" id="login-phone" placeholder="Ej: 5491112345678" type="tel" inputmode="numeric" autocomplete="off">
+    </div>
+    <div class="ig">
       <span class="lbl">Elegí tu color</span>
       <div class="color-grid" id="colorPicker"></div>
     </div>
@@ -552,6 +556,10 @@ select.ifield{cursor:pointer}
       </div>
       <div class="ig"><span class="lbl">Nombre y apellido</span><input class="ifield" id="ep-name" autocomplete="off" oninput="updateEditPhotoLetter()"></div>
       <div class="ig">
+        <span class="lbl">WhatsApp <span style="color:var(--text3);font-weight:400">(con código de país, sin +)</span></span>
+        <input class="ifield" id="ep-phone" type="tel" inputmode="numeric" autocomplete="off" placeholder="Ej: 5491112345678">
+      </div>
+      <div class="ig">
         <span class="lbl">Color</span>
         <div class="color-grid" id="ep-colorPicker"></div>
       </div>
@@ -733,21 +741,31 @@ function pickColor(c, el) {
 let pendingPhoto = null; // base64 de la foto cargada en el formulario
 
 function doLogin() {
-  const name = v('login-name').trim();
-  if (!name) { toast('Ingresá tu nombre', 'e'); return; }
+  const name  = v('login-name').trim();
+  const phone = normalizePhone(v('login-phone'));
+  if (!name)  { toast('Ingresá tu nombre', 'e'); return; }
+  if (!phone) { toast('Ingresá tu WhatsApp (8-15 dígitos)', 'e'); return; }
 
   const uid = firebase.auth().currentUser?.uid;
   if (!uid) { toast('Sin autenticar — recargá la página', 'e'); return; }
   lsSet('uid', uid);
 
-  me = { uid, name, color: selColor, photo: pendingPhoto, isAdmin: false };
+  me = { uid, name, color: selColor, phone, photo: pendingPhoto, isAdmin: false };
   lsSet('user', JSON.stringify(me));
 
-  const record = { name, color: selColor, ts: Date.now() };
+  const record = { name, color: selColor, phone, ts: Date.now() };
   if (pendingPhoto) record.photo = pendingPhoto;
   db.ref(`users/${uid}`).set(record);
   pendingPhoto = null;
   enterApp();
+}
+
+// Devuelve el teléfono normalizado (solo dígitos, 8-15) o null
+function normalizePhone(raw) {
+  if (!raw) return null;
+  const digits = String(raw).replace(/\D/g, '');
+  if (digits.length < 8 || digits.length > 15) return null;
+  return digits;
 }
 
 // ── Foto: handlers para crear perfil ──
@@ -784,7 +802,8 @@ function openEditProfile() {
   ).join('');
   selColor = me.color; // reset al actual
 
-  document.getElementById('ep-name').value = me.name;
+  document.getElementById('ep-name').value  = me.name;
+  document.getElementById('ep-phone').value = me.phone || '';
 
   // Preview de foto
   editPhoto = me.photo || null;
@@ -837,15 +856,18 @@ function updateEditPhotoLetter() {
 }
 
 function saveProfile() {
-  const name = v('ep-name').trim();
-  if (!name) { toast('El nombre no puede estar vacío', 'e'); return; }
+  const name  = v('ep-name').trim();
+  const phone = normalizePhone(v('ep-phone'));
+  if (!name)  { toast('El nombre no puede estar vacío', 'e'); return; }
+  if (!phone) { toast('WhatsApp inválido (8-15 dígitos)', 'e'); return; }
 
   me.name  = name;
   me.color = selColor;
+  me.phone = phone;
   if (editPhotoChanged) me.photo = editPhoto;
   lsSet('user', JSON.stringify(me));
 
-  const update = { name, color: selColor, ts: Date.now() };
+  const update = { name, color: selColor, phone, ts: Date.now() };
   if (editPhotoChanged) update.photo = editPhoto || null;
   db.ref(`users/${me.uid}`).update(update).then(() => {
     closeModal('modal-edit-profile');
@@ -1491,10 +1513,35 @@ function doStatusChange(status) {
       { compId: id, date: item.generatedDate, reason: item.reason || '' },
       uid
     );
+    // Auto-WA al usuario para avisarle
+    notifyUserByWa(uid, status, item);
   }
   closeModal('modal-auth');
   toast(status === 'authorized' ? 'Autorizado ✓' : 'Denegado', status === 'authorized' ? 's' : 'w');
   pendingAuth = null;
+}
+
+// Abre WhatsApp con mensaje prellenado para avisarle al usuario
+function notifyUserByWa(targetUid, status, comp) {
+  const target = allUsers[targetUid];
+  if (!target) return;
+  const phone = normalizePhone(target.phone);
+  if (!phone) {
+    // El usuario no tiene WA cargado — solo le va a llegar in-app
+    setTimeout(() => toast(`${target.name} no cargó WhatsApp — solo se le notifica en la app`, 'w'), 600);
+    return;
+  }
+  const date = fmt(comp.generatedDate);
+  const firstName = target.name.split(' ')[0];
+  let msg;
+  if (status === 'authorized') {
+    msg = `Hola ${firstName}! ✅ Te confirmo tu compensatorio del ${date}. ¡Disfrutalo!`;
+  } else {
+    msg = `Hola ${firstName}! Por ahora no puedo aprobarte el compensatorio del ${date}. Hablemos cuando puedas.`;
+  }
+  const url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+  // Pequeño delay para que el modal cierre y el toast aparezca primero
+  setTimeout(() => window.open(url, '_blank'), 400);
 }
 
 // ══════════════════════════════════════════

@@ -1,0 +1,1299 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>Team Days</title>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<style>
+:root{
+  --bg:#070D1F;--bg2:#0D1632;--card:rgba(255,255,255,0.06);--card-b:rgba(255,255,255,0.10);
+  --gold:#F0B429;--blue:#4B9FFF;--green:#10B981;--red:#EF4444;--purple:#8B5CF6;
+  --text:#F9FAFB;--text2:rgba(249,250,251,0.55);--text3:rgba(249,250,251,0.28);
+  --r:16px;--shadow:0 8px 32px rgba(0,0,0,0.45);
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);overflow:hidden}
+
+/* ── APP SHELL ── */
+#app{height:100vh;height:100dvh;display:flex;flex-direction:column;max-width:430px;margin:0 auto;position:relative;overflow:hidden}
+@media(min-width:768px){
+  body{background:var(--bg2);display:flex;align-items:center;justify-content:center}
+  #app{height:90vh;border-radius:32px;border:1px solid var(--card-b);box-shadow:0 32px 80px rgba(0,0,0,0.7)}
+}
+
+/* ── SCREENS ── */
+.screen{display:none;flex-direction:column;height:100%;overflow:hidden}
+.screen.active{display:flex}
+
+/* ── FIREBASE SETUP ── */
+#screen-firebase{background:var(--bg);align-items:stretch;padding:28px 24px 40px;gap:16px;overflow-y:auto}
+.setup-logo{width:72px;height:72px;background:linear-gradient(135deg,var(--gold),#E08A10);border-radius:22px;display:flex;align-items:center;justify-content:center;font-size:34px;box-shadow:0 8px 28px rgba(240,180,41,0.35);margin:0 auto}
+.setup-title{font-size:22px;font-weight:700;text-align:center}
+.setup-sub{color:var(--text2);text-align:center;font-size:13px;line-height:1.55}
+.step-card{background:var(--card);border:1px solid var(--card-b);border-radius:12px;padding:12px 14px}
+.step-num{font-size:10px;color:var(--gold);font-weight:800;text-transform:uppercase;letter-spacing:.08em;margin-bottom:4px}
+.step-txt{font-size:13px;color:var(--text2);line-height:1.5}
+.step-txt code{background:rgba(255,255,255,0.09);padding:1px 5px;border-radius:4px;font-family:monospace;color:var(--gold)}
+
+/* ── LOGIN ── */
+#screen-login{background:var(--bg);align-items:stretch;justify-content:center;padding:32px 28px;gap:24px;overflow-y:auto}
+
+/* ── INPUTS ── */
+.ig{display:flex;flex-direction:column;gap:7px}
+.lbl{font-size:12px;color:var(--text2);font-weight:600;letter-spacing:.03em}
+.ifield{background:var(--card);border:1px solid var(--card-b);border-radius:12px;padding:13px 15px;color:var(--text);font-size:16px;outline:none;width:100%;transition:border-color .2s}
+.ifield:focus{border-color:var(--gold)}
+.ifield::placeholder{color:var(--text3)}
+select.ifield{cursor:pointer}
+.sep{height:1px;background:var(--card-b);margin:4px 0}
+.form-stack{display:flex;flex-direction:column;gap:14px}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+
+/* ── BUTTONS ── */
+.btn{border:none;border-radius:13px;padding:15px;font-size:15px;font-weight:700;cursor:pointer;transition:transform .13s,box-shadow .13s;width:100%}
+.btn:active{transform:scale(.97)}
+.btn-gold{background:linear-gradient(135deg,#F0B429,#D49010);color:#000;box-shadow:0 4px 18px rgba(240,180,41,0.38)}
+.btn-ghost{background:var(--card);border:1px solid var(--card-b);color:var(--text)}
+.btn-danger{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);color:#FCA5A5}
+.btn-sm{padding:8px 14px;font-size:13px;border-radius:10px;width:auto}
+
+/* ── COLOR PICKER ── */
+.color-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+.cdot{width:44px;height:44px;border-radius:50%;cursor:pointer;border:3px solid transparent;transition:transform .15s,border-color .15s}
+.cdot.sel{border-color:#fff;transform:scale(1.12)}
+
+/* ── HEADER ── */
+.app-header{padding:16px 20px 10px;display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+.hdr-l{display:flex;flex-direction:column}
+.hdr-greet{font-size:12px;color:var(--text2)}
+.hdr-name{font-size:20px;font-weight:800;letter-spacing:-.02em}
+.avatar{width:42px;height:42px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;cursor:pointer;flex-shrink:0}
+
+/* ── TAB NAV ── */
+.tab-nav{display:flex;padding:2px 16px 8px;gap:2px;flex-shrink:0}
+.tb{flex:1;padding:8px 2px;background:none;border:none;color:var(--text2);font-size:11px;font-weight:600;cursor:pointer;border-radius:10px;transition:all .2s;display:flex;flex-direction:column;align-items:center;gap:3px;letter-spacing:.01em}
+.tb .ti{font-size:21px;line-height:1}
+.tb.active{color:var(--gold);background:rgba(240,180,41,0.10)}
+
+/* ── CONTENT ── */
+.content{flex:1;overflow-y:auto;padding:0 14px 20px;-webkit-overflow-scrolling:touch}
+
+/* ── CALENDAR ── */
+.cal-wrap{background:var(--card);border:1px solid var(--card-b);border-radius:var(--r);overflow:hidden;margin-bottom:14px}
+.cal-hdr{display:flex;align-items:center;justify-content:space-between;padding:14px 18px;border-bottom:1px solid var(--card-b)}
+.cal-month-lbl{font-size:17px;font-weight:700;text-transform:capitalize}
+.cal-nav-btn{background:none;border:none;color:var(--text2);font-size:22px;cursor:pointer;padding:2px 8px;border-radius:8px;line-height:1;transition:color .2s}
+.cal-nav-btn:active{color:var(--text)}
+.cal-wdays{display:grid;grid-template-columns:repeat(7,1fr);padding:10px 8px 4px}
+.cal-wd{text-align:center;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.06em}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);padding:2px 6px 10px;gap:1px}
+.cday{aspect-ratio:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:9px;cursor:pointer;position:relative;transition:background .13s;gap:2px;user-select:none}
+.cday:active{background:rgba(255,255,255,0.09)!important}
+.cday.other .dnum{color:var(--text3)}
+.cday.today .dnum{background:var(--gold);color:#000;width:26px;height:26px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800}
+.cday.sel{background:rgba(240,180,41,0.14);outline:1px solid rgba(240,180,41,0.38)}
+.dnum{font-size:13px;font-weight:500;line-height:1}
+.ddots{display:flex;gap:2px;height:5px;align-items:center;justify-content:center}
+.ddot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+
+/* vacation range */
+.vr{background:rgba(75,159,255,0.13);border-radius:0}
+.vr-s{border-radius:9px 0 0 9px}
+.vr-e{border-radius:0 9px 9px 0}
+.vr-1{border-radius:9px}
+
+/* ── LEGEND ── */
+.legend{display:flex;flex-wrap:wrap;gap:8px;padding:6px 12px 12px}
+.leg-i{display:flex;align-items:center;gap:4px;font-size:11px;color:var(--text2)}
+.leg-d{width:8px;height:8px;border-radius:50%}
+
+/* ── DAY PANEL ── */
+.day-panel{background:var(--card);border:1px solid var(--card-b);border-radius:var(--r);padding:14px;margin-bottom:12px}
+.panel-title{font-size:14px;font-weight:700;color:var(--gold);margin-bottom:10px;text-transform:capitalize}
+.no-ev{color:var(--text3);font-size:13px;text-align:center;padding:6px 0}
+
+/* ── EVENT CARDS ── */
+.ev-card{display:flex;align-items:center;gap:10px;padding:9px 10px;background:rgba(255,255,255,0.04);border-radius:10px;margin-bottom:7px}
+.ev-bar{width:3px;height:34px;border-radius:2px;flex-shrink:0}
+.ev-info{flex:1;min-width:0}
+.ev-user{font-size:13px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ev-type{font-size:11px;color:var(--text2);margin-top:1px}
+.ev-actions{display:flex;gap:4px;align-items:center;flex-shrink:0}
+.badge{font-size:10px;font-weight:700;padding:3px 8px;border-radius:20px;white-space:nowrap}
+.b-pend{background:rgba(240,180,41,0.18);color:var(--gold)}
+.b-req{background:rgba(75,159,255,0.18);color:var(--blue)}
+.b-auth{background:rgba(16,185,129,0.18);color:var(--green)}
+.b-den{background:rgba(239,68,68,0.18);color:var(--red)}
+.ico-btn{background:none;border:none;padding:5px;border-radius:7px;cursor:pointer;font-size:17px;transition:background .13s;line-height:1}
+.ico-btn:active{background:rgba(255,255,255,0.09)}
+
+/* ── FAB ROW ── */
+.fab-row{display:flex;gap:10px;margin-bottom:14px}
+.fab{flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:13px;border:none;border-radius:13px;font-size:13px;font-weight:700;cursor:pointer;transition:transform .13s}
+.fab:active{transform:scale(.96)}
+.fab-c{background:rgba(240,180,41,0.12);color:var(--gold);border:1px solid rgba(240,180,41,0.28)}
+.fab-v{background:rgba(75,159,255,0.12);color:var(--blue);border:1px solid rgba(75,159,255,0.28)}
+
+/* ── SECTION TITLE ── */
+.sec-title{font-size:16px;font-weight:800;margin-bottom:12px;margin-top:2px;letter-spacing:-.01em}
+
+/* ── LIST CARDS ── */
+.list-card{background:var(--card);border:1px solid var(--card-b);border-radius:var(--r);overflow:hidden;margin-bottom:10px}
+.li{display:flex;align-items:center;padding:13px 14px;gap:11px;border-bottom:1px solid rgba(255,255,255,0.05)}
+.li:last-child{border-bottom:none}
+.li-icon{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.ic{background:rgba(240,180,41,0.13)}
+.iv{background:rgba(75,159,255,0.13)}
+.li-info{flex:1;min-width:0}
+.li-date{font-size:13px;font-weight:700}
+.li-desc{font-size:11px;color:var(--text2);margin-top:2px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.li-right{display:flex;gap:5px;align-items:center;flex-shrink:0}
+
+/* ── TEAM ── */
+.member-card{background:var(--card);border:1px solid var(--card-b);border-radius:var(--r);padding:13px 14px;display:flex;align-items:center;gap:11px;margin-bottom:9px}
+.m-av{width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:17px;flex-shrink:0}
+.m-info{flex:1;min-width:0}
+.m-name{font-size:14px;font-weight:700}
+.m-status{font-size:11px;color:var(--text2);margin-top:2px}
+.m-counts{display:flex;gap:7px}
+.cnt{display:flex;flex-direction:column;align-items:center;background:rgba(255,255,255,0.05);border-radius:8px;padding:4px 9px;min-width:34px}
+.cnt-n{font-size:14px;font-weight:800}
+.cnt-l{font-size:9px;color:var(--text3);text-transform:uppercase;letter-spacing:.05em}
+
+/* ── PENDING BANNER ── */
+.pend-banner{background:linear-gradient(135deg,rgba(75,159,255,0.14),rgba(75,159,255,0.05));border:1px solid rgba(75,159,255,0.28);border-radius:12px;padding:11px 13px;display:flex;align-items:center;gap:9px;margin-bottom:12px;cursor:pointer}
+.pb-icon{font-size:22px}
+.pb-text{flex:1}
+.pb-title{font-size:12px;font-weight:700;color:var(--blue)}
+.pb-sub{font-size:11px;color:var(--text2)}
+.pb-count{background:var(--blue);color:#fff;width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800}
+
+/* ── MODALS ── */
+.modal-ov{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.72);z-index:100;align-items:flex-end;justify-content:center;backdrop-filter:blur(5px)}
+.modal-ov.open{display:flex}
+@media(min-width:768px){.modal-ov{align-items:center}}
+.modal-sheet{background:#111827;border-radius:22px 22px 0 0;width:100%;max-width:430px;padding:18px 20px 28px;animation:su .28s cubic-bezier(.32,.72,0,1);max-height:90vh;overflow-y:auto}
+.modal-sheet.no-round{border-radius:22px 22px 0 0}
+@media(min-width:768px){.modal-sheet{border-radius:22px;max-width:400px}}
+@keyframes su{from{transform:translateY(100%)}to{transform:translateY(0)}}
+.m-handle{width:34px;height:4px;background:rgba(255,255,255,0.18);border-radius:2px;margin:0 auto 18px}
+.m-title{font-size:17px;font-weight:800;margin-bottom:18px}
+.m-actions{display:flex;gap:10px;margin-top:16px}
+.m-actions .btn{flex:1;padding:13px}
+
+/* ── CONFLICT ALERT ── */
+.conflict-box{background:rgba(239,68,68,0.09);border:1px solid rgba(239,68,68,0.35);border-radius:10px;padding:10px 12px;margin-bottom:12px;font-size:13px;color:#FCA5A5;display:none}
+
+/* ── WA PREVIEW ── */
+.wa-preview-box{background:rgba(75,159,255,0.07);border:1px solid rgba(75,159,255,0.2);border-radius:12px;padding:13px;margin-bottom:14px;font-size:14px;line-height:1.55;color:var(--text2)}
+.wa-preview-box .wa-lbl{font-size:11px;color:var(--blue);font-weight:700;margin-bottom:6px;text-transform:uppercase;letter-spacing:.05em}
+
+/* ── TOAST ── */
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%) translateY(-90px);background:#1F2937;color:var(--text);padding:11px 20px;border-radius:12px;font-size:13px;font-weight:600;z-index:200;transition:transform .28s cubic-bezier(.32,.72,0,1);white-space:nowrap;border:1px solid var(--card-b);box-shadow:var(--shadow)}
+.toast.show{transform:translateX(-50%) translateY(0)}
+.toast.e{border-color:rgba(239,68,68,.6)}
+.toast.s{border-color:rgba(16,185,129,.6)}
+.toast.w{border-color:rgba(240,180,41,.6)}
+
+/* ── EMPTY STATE ── */
+.empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:36px 20px;color:var(--text2)}
+.empty-ico{font-size:38px}
+.empty-txt{font-size:13px;text-align:center;line-height:1.5}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:3px}
+::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.09);border-radius:2px}
+</style>
+</head>
+<body>
+<div id="app">
+
+<!-- ═══ SCREEN: FIREBASE SETUP ═══ -->
+<div id="screen-firebase" class="screen active">
+  <div class="setup-logo">🔥</div>
+  <div class="setup-title">Team Days — Setup</div>
+  <div class="setup-sub">Configurá Firebase para sincronización en tiempo real entre todos los integrantes del equipo.</div>
+
+  <div class="step-card">
+    <div class="step-num">Paso 1 — Crear proyecto</div>
+    <div class="step-txt">Ir a <code>console.firebase.google.com</code> → Crear proyecto → En el menú lateral: <strong>Realtime Database</strong> → Crear base de datos en modo de prueba.</div>
+  </div>
+  <div class="step-card">
+    <div class="step-num">Paso 2 — Obtener configuración</div>
+    <div class="step-txt">Configuración del proyecto (ícono ⚙️) → Tus apps → Agregar app Web → Copiar <code>firebaseConfig</code>.</div>
+  </div>
+
+  <div class="form-stack">
+    <div class="ig"><span class="lbl">API Key</span><input class="ifield" id="fb-key" placeholder="AIzaSy..." autocomplete="off"></div>
+    <div class="ig"><span class="lbl">Database URL</span><input class="ifield" id="fb-db" placeholder="https://mi-proyecto-default-rtdb.firebaseio.com"></div>
+    <div class="ig"><span class="lbl">Project ID</span><input class="ifield" id="fb-pid" placeholder="mi-proyecto-12345"></div>
+    <div class="ig"><span class="lbl">App ID</span><input class="ifield" id="fb-aid" placeholder="1:123456:web:abc123"></div>
+    <div class="sep"></div>
+    <div class="ig"><span class="lbl">WhatsApp del Jefe (con código de país, sin +)</span><input class="ifield" id="fb-wa" placeholder="5491112345678" type="tel" inputmode="numeric"></div>
+    <div class="ig"><span class="lbl">Nombre del Jefe</span><input class="ifield" id="fb-boss" placeholder="Ej: Martín"></div>
+    <div class="ig"><span class="lbl">Código de administrador (para que el jefe se identifique)</span><input class="ifield" id="fb-admincode" placeholder="Ej: equipo2026" autocomplete="off"></div>
+    <button class="btn btn-gold" onclick="saveFirebaseConfig()">Guardar y Conectar →</button>
+  </div>
+</div>
+
+<!-- ═══ SCREEN: LOGIN ═══ -->
+<div id="screen-login" class="screen">
+  <div style="display:flex;flex-direction:column;align-items:center;gap:6px;margin-bottom:8px">
+    <div style="font-size:48px">📅</div>
+    <div style="font-size:24px;font-weight:800;letter-spacing:-.02em">Team Days</div>
+    <div style="font-size:13px;color:var(--text2);text-align:center">Compensatorios y vacaciones del equipo</div>
+  </div>
+
+  <!-- Returning user -->
+  <div id="returning-user" style="display:none;background:var(--card);border:1px solid var(--card-b);border-radius:14px;padding:16px;margin-bottom:16px">
+    <div style="font-size:12px;color:var(--text2);margin-bottom:10px;font-weight:600">CONTINUAR COMO</div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div id="ret-av" class="avatar" style="width:48px;height:48px;font-size:20px"></div>
+      <div style="flex:1">
+        <div id="ret-name" style="font-size:16px;font-weight:700"></div>
+        <div style="font-size:12px;color:var(--text2);margin-top:2px">Último acceso registrado</div>
+      </div>
+      <button class="btn btn-gold btn-sm" onclick="continueAsUser()">Entrar</button>
+    </div>
+  </div>
+
+  <div class="form-stack" id="new-user-form">
+    <div style="font-size:13px;color:var(--text2);font-weight:600" id="or-label">O INGRESÁ TU NOMBRE</div>
+    <div class="ig"><span class="lbl">Nombre y apellido</span><input class="ifield" id="login-name" placeholder="Ej: Juan Pérez" autocomplete="off"></div>
+    <div class="ig">
+      <span class="lbl">Elegí tu color</span>
+      <div class="color-grid" id="colorPicker"></div>
+    </div>
+    <button class="btn btn-gold" onclick="doLogin()">Entrar →</button>
+    <button class="btn btn-ghost" onclick="openAdminLogin()" style="display:flex;align-items:center;justify-content:center;gap:7px">
+      <span style="font-size:17px">👑</span> Entrar como administrador
+    </button>
+    <button class="btn btn-ghost" style="font-size:13px;padding:11px;color:var(--text2)" onclick="showScreen('screen-firebase')">⚙️ Reconfigurar Firebase</button>
+  </div>
+</div>
+
+<!-- ═══ SCREEN: MAIN ═══ -->
+<div id="screen-main" class="screen">
+  <div class="app-header">
+    <div class="hdr-l">
+      <div class="hdr-greet" id="hdr-greet">Hola</div>
+      <div class="hdr-name" id="hdr-name">—</div>
+    </div>
+    <div class="avatar" id="hdr-av" onclick="openModal('modal-user')">?</div>
+  </div>
+
+  <div class="tab-nav">
+    <button class="tb active" id="tb-cal" onclick="switchTab('cal')"><span class="ti">📅</span>Calendario</button>
+    <button class="tb" id="tb-comp" onclick="switchTab('comp')"><span class="ti">⏱️</span>Compens.</button>
+    <button class="tb" id="tb-vac" onclick="switchTab('vac')"><span class="ti">🌴</span>Vacaciones</button>
+    <button class="tb" id="tb-team" onclick="switchTab('team')"><span class="ti">👥</span>Equipo</button>
+  </div>
+
+  <div class="content">
+    <!-- ── TAB CAL ── -->
+    <div id="view-cal">
+      <div class="cal-wrap">
+        <div class="cal-hdr">
+          <button class="cal-nav-btn" onclick="calNav(-1)">‹</button>
+          <div class="cal-month-lbl" id="cal-lbl">—</div>
+          <button class="cal-nav-btn" onclick="calNav(1)">›</button>
+        </div>
+        <div class="cal-wdays">
+          <div class="cal-wd">D</div><div class="cal-wd">L</div><div class="cal-wd">M</div>
+          <div class="cal-wd">X</div><div class="cal-wd">J</div><div class="cal-wd">V</div><div class="cal-wd">S</div>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+        <div class="legend" id="cal-legend"></div>
+      </div>
+
+      <div class="day-panel">
+        <div class="panel-title" id="panel-title">Seleccioná un día</div>
+        <div id="panel-events"><div class="no-ev">Tocá un día para ver eventos</div></div>
+      </div>
+
+      <div class="fab-row">
+        <button class="fab fab-c" onclick="openAddComp()">⏱️ + Compensatorio</button>
+        <button class="fab fab-v" onclick="openAddVac()">🌴 + Vacaciones</button>
+      </div>
+    </div>
+
+    <!-- ── TAB COMP ── -->
+    <div id="view-comp" style="display:none">
+      <div class="sec-title" id="comp-title">Mis compensatorios</div>
+      <div id="comp-content"></div>
+    </div>
+
+    <!-- ── TAB VAC ── -->
+    <div id="view-vac" style="display:none">
+      <div class="sec-title">Mis vacaciones</div>
+      <div id="vac-content"></div>
+    </div>
+
+    <!-- ── TAB TEAM ── -->
+    <div id="view-team" style="display:none">
+      <div id="pend-banner" class="pend-banner" style="display:none" onclick="switchTab('comp')">
+        <div class="pb-icon">🔔</div>
+        <div class="pb-text">
+          <div class="pb-title">Solicitudes pendientes de autorizar</div>
+          <div class="pb-sub">Tocá para ver tus compensatorios</div>
+        </div>
+        <div class="pb-count" id="pend-count">0</div>
+      </div>
+      <div class="sec-title">Integrantes del equipo</div>
+      <div id="team-content"></div>
+    </div>
+  </div>
+</div>
+</div><!-- #app -->
+
+<!-- ═══ MODAL: Add Compensatorio ═══ -->
+<div class="modal-ov" id="modal-comp">
+  <div class="modal-sheet">
+    <div class="m-handle"></div>
+    <div class="m-title">Cargar Compensatorio</div>
+    <div class="form-stack">
+      <div class="ig"><span class="lbl">Día que querés tomar</span><input class="ifield" type="date" id="mc-date"></div>
+      <div class="ig"><span class="lbl">Motivo (opcional)</span><input class="ifield" id="mc-reason" placeholder="Ej: Trabajé el sábado pasado"></div>
+    </div>
+    <div class="m-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-comp')">Cancelar</button>
+      <button class="btn btn-gold" onclick="saveComp()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Add Vacaciones ═══ -->
+<div class="modal-ov" id="modal-vac">
+  <div class="modal-sheet">
+    <div class="m-handle"></div>
+    <div class="m-title">Cargar Vacaciones</div>
+    <div class="form-stack">
+      <div class="row2">
+        <div class="ig"><span class="lbl">Desde</span><input class="ifield" type="date" id="mv-start"></div>
+        <div class="ig"><span class="lbl">Hasta</span><input class="ifield" type="date" id="mv-end"></div>
+      </div>
+      <div class="ig"><span class="lbl">Nota (opcional)</span><input class="ifield" id="mv-note" placeholder="Ej: Vacaciones de invierno"></div>
+      <div class="conflict-box" id="conflict-box">
+        ⚠️ <strong>Conflicto:</strong> <span id="conflict-msg"></span>
+      </div>
+    </div>
+    <div class="m-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-vac')">Cancelar</button>
+      <button class="btn btn-gold" onclick="saveVac()">Guardar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Request via WA ═══ -->
+<div class="modal-ov" id="modal-wa">
+  <div class="modal-sheet">
+    <div class="m-handle"></div>
+    <div class="m-title">Solicitar por WhatsApp</div>
+    <div class="wa-preview-box">
+      <div class="wa-lbl">Mensaje a enviar</div>
+      <div id="wa-text"></div>
+    </div>
+    <div class="m-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-wa')">Cancelar</button>
+      <button class="btn btn-gold" onclick="doSendWa()">📲 Enviar WA</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Authorize ═══ -->
+<div class="modal-ov" id="modal-auth">
+  <div class="modal-sheet">
+    <div class="m-handle"></div>
+    <div class="m-title" id="auth-title">Gestionar solicitud</div>
+    <div style="background:var(--card);border:1px solid var(--card-b);border-radius:12px;padding:14px;margin-bottom:4px;font-size:14px;line-height:1.6;" id="auth-detail"></div>
+    <div class="m-actions">
+      <button class="btn btn-danger" onclick="doStatusChange('denied')">✗ Denegar</button>
+      <button class="btn btn-gold" onclick="doStatusChange('authorized')">✓ Autorizar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: Admin Login ═══ -->
+<div class="modal-ov" id="modal-admin">
+  <div class="modal-sheet">
+    <div class="m-handle"></div>
+    <div class="m-title">👑 Acceso administrador</div>
+    <div style="background:rgba(240,180,41,0.08);border:1px solid rgba(240,180,41,0.25);border-radius:10px;padding:11px 13px;margin-bottom:14px;font-size:13px">
+      Vas a entrar como <strong id="admin-as-name" style="color:var(--gold)">Administrador</strong>
+    </div>
+    <div class="form-stack">
+      <div class="ig">
+        <span class="lbl">Código de administrador</span>
+        <input class="ifield" id="admin-code-input" type="password" autocomplete="off" placeholder="••••••••" onkeydown="if(event.key==='Enter')confirmAdminLogin()">
+      </div>
+    </div>
+    <div class="m-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-admin')">Cancelar</button>
+      <button class="btn btn-gold" onclick="confirmAdminLogin()">Entrar →</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══ MODAL: User Menu ═══ -->
+<div class="modal-ov" id="modal-user">
+  <div class="modal-sheet">
+    <div class="m-handle"></div>
+    <div class="m-title">Mi perfil</div>
+    <div style="display:flex;align-items:center;gap:13px;background:var(--card);border-radius:14px;padding:14px;margin-bottom:18px">
+      <div id="um-av" class="avatar" style="width:52px;height:52px;font-size:22px"></div>
+      <div>
+        <div id="um-name" style="font-size:17px;font-weight:800"></div>
+        <div id="um-id" style="font-size:11px;color:var(--text3);margin-top:3px"></div>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:9px">
+      <button class="btn btn-ghost" onclick="closeModal('modal-user');showScreen('screen-login')">↩ Cambiar usuario</button>
+      <button class="btn btn-ghost" style="color:var(--text2);font-size:13px" onclick="closeModal('modal-user');showScreen('screen-firebase')">⚙️ Reconfigurar Firebase</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+// ══════════════════════════════════════════
+//  CONSTANTS & STATE
+// ══════════════════════════════════════════
+const COLORS = ['#4B9FFF','#F0B429','#10B981','#8B5CF6','#EF4444','#EC4899','#14B8A6','#F97316','#06B6D4','#A3E635'];
+const MONTHS = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+const WDAYS  = ['Domingo','Lunes','Martes','Miércoles','Jueves','Viernes','Sábado'];
+
+let db = null;
+let me = null;           // current user {uid, name, color, isAdmin}
+let allUsers  = {};
+let allComp   = {};
+let allVac    = {};
+let allAdmins = {};
+let bossWa    = '';
+let bossName  = 'el jefe';
+let adminCode = '';
+
+const now   = new Date();
+let calY = now.getFullYear();
+let calM = now.getMonth();
+let selDate = null;
+
+let pendingWa   = null;  // {uid, id, comp}
+let pendingAuth = null;  // {uid, id, type, path}
+
+// ══════════════════════════════════════════
+//  BOOT
+// ══════════════════════════════════════════
+async function boot() {
+  const fbCfg = lsGet('fb_cfg');
+  const user  = lsGet('user');
+
+  if (!fbCfg) { showScreen('screen-firebase'); return; }
+
+  if (!connectFirebase(JSON.parse(fbCfg))) return;
+
+  // Anonymous Auth: garantiza un UID verificable por dispositivo
+  const authUser = await ensureAuth();
+  if (!authUser) {
+    toast('No se pudo autenticar. Revisá Anonymous Auth en Firebase.', 'e');
+    showScreen('screen-firebase');
+    return;
+  }
+
+  buildColorPicker();
+
+  if (user) {
+    const u = JSON.parse(user);
+    // Migrar a UID de auth si difiere (cuentas creadas antes de habilitar auth)
+    if (u.uid !== authUser.uid) {
+      u.uid = authUser.uid;
+      lsSet('uid', authUser.uid);
+      lsSet('user', JSON.stringify(u));
+    }
+    const retEl = document.getElementById('returning-user');
+    retEl.style.display = 'block';
+    document.getElementById('or-label').textContent = 'O INGRESÁ COMO OTRA PERSONA';
+    document.getElementById('ret-name').textContent = u.name;
+    const av = document.getElementById('ret-av');
+    av.style.background = u.color;
+    av.textContent = u.name.charAt(0).toUpperCase();
+  }
+
+  showScreen('screen-login');
+}
+
+function ensureAuth() {
+  return new Promise(resolve => {
+    const unsub = firebase.auth().onAuthStateChanged(user => {
+      if (user) { unsub(); resolve(user); }
+      else {
+        firebase.auth().signInAnonymously().catch(e => {
+          unsub();
+          toast('Error de auth: ' + e.message, 'e');
+          resolve(null);
+        });
+      }
+    });
+  });
+}
+
+function continueAsUser() {
+  const u = JSON.parse(lsGet('user'));
+  const authUid = firebase.auth().currentUser?.uid;
+  if (authUid && u.uid !== authUid) {
+    u.uid = authUid;
+    lsSet('user', JSON.stringify(u));
+  }
+  me = u;
+  // Re-sincronizar usuario y rol en Firebase según lo guardado localmente
+  if (me.uid) {
+    db.ref(`users/${me.uid}`).set({ name: me.name, color: me.color, ts: Date.now() });
+    if (me.isAdmin) db.ref(`admins/${me.uid}`).set(true);
+    else            db.ref(`admins/${me.uid}`).remove();
+  }
+  enterApp();
+}
+
+// ══════════════════════════════════════════
+//  FIREBASE
+// ══════════════════════════════════════════
+function connectFirebase(cfg) {
+  try {
+    if (!firebase.apps.length) firebase.initializeApp(cfg);
+    db = firebase.database();
+    bossWa    = cfg.bossWa    || '';
+    bossName  = cfg.bossName  || 'el jefe';
+    adminCode = cfg.adminCode || '';
+    return true;
+  } catch(e) {
+    toast('Firebase: ' + e.message, 'e'); return false;
+  }
+}
+
+function saveFirebaseConfig() {
+  const key = v('fb-key').trim(), dbUrl = v('fb-db').trim(),
+        pid = v('fb-pid').trim(), aid = v('fb-aid').trim(),
+        wa  = v('fb-wa').trim(),  boss = v('fb-boss').trim(),
+        ac  = v('fb-admincode').trim();
+
+  if (!key || !dbUrl || !pid || !aid) { toast('Completá todos los campos de Firebase', 'e'); return; }
+  if (!ac) { toast('Definí un código de administrador', 'e'); return; }
+
+  const cfg = { apiKey:key, databaseURL:dbUrl, projectId:pid, appId:aid, bossWa:wa, bossName:boss, adminCode:ac };
+  if (!connectFirebase(cfg)) return;
+
+  db.ref('.info/connected').once('value')
+    .then(async () => {
+      const authUser = await ensureAuth();
+      if (!authUser) return;
+      lsSet('fb_cfg', JSON.stringify(cfg));
+      toast('¡Conectado! ✓', 's');
+      setTimeout(() => { buildColorPicker(); showScreen('screen-login'); }, 900);
+    })
+    .catch(e => toast('No se pudo conectar: ' + e.message, 'e'));
+}
+
+// ══════════════════════════════════════════
+//  LOGIN
+// ══════════════════════════════════════════
+let selColor = COLORS[0];
+
+function buildColorPicker() {
+  document.getElementById('colorPicker').innerHTML = COLORS.map((c, i) =>
+    `<div class="cdot${i===0?' sel':''}" style="background:${c}" onclick="pickColor('${c}',this)"></div>`
+  ).join('');
+}
+
+function pickColor(c, el) {
+  selColor = c;
+  document.querySelectorAll('.cdot').forEach(d => d.classList.remove('sel'));
+  el.classList.add('sel');
+}
+
+function doLogin() { doLoginAs(false); }
+
+function doLoginAs(isAdmin) {
+  const name = v('login-name').trim();
+  if (!name) { toast('Ingresá tu nombre', 'e'); return; }
+
+  const uid = firebase.auth().currentUser?.uid;
+  if (!uid) { toast('Sin autenticar — recargá la página', 'e'); return; }
+  lsSet('uid', uid);
+
+  me = { uid, name, color: selColor, isAdmin };
+  lsSet('user', JSON.stringify(me));
+
+  db.ref(`users/${uid}`).set({ name, color: selColor, ts: Date.now() });
+  // Cada login define explícitamente el rol: entrar normal te saca de admins, entrar admin te agrega
+  if (isAdmin) db.ref(`admins/${uid}`).set(true);
+  else         db.ref(`admins/${uid}`).remove();
+  enterApp();
+}
+
+function openAdminLogin() {
+  document.getElementById('admin-code-input').value = '';
+  // Mostrar el nombre con el que va a entrar
+  const lbl = document.getElementById('admin-as-name');
+  if (lbl) lbl.textContent = bossName || 'Administrador';
+  openModal('modal-admin');
+  setTimeout(() => document.getElementById('admin-code-input').focus(), 250);
+}
+
+function confirmAdminLogin() {
+  const code = v('admin-code-input').trim();
+  if (!code) { toast('Ingresá el código', 'e'); return; }
+  if (code !== adminCode) { toast('Código incorrecto', 'e'); return; }
+  closeModal('modal-admin');
+
+  const uid = firebase.auth().currentUser?.uid;
+  if (!uid) { toast('Sin autenticar — recargá la página', 'e'); return; }
+  lsSet('uid', uid);
+
+  me = { uid, name: bossName || 'Administrador', color: '#F0B429', isAdmin: true };
+  lsSet('user', JSON.stringify(me));
+
+  db.ref(`users/${uid}`).set({ name: me.name, color: me.color, ts: Date.now() });
+  db.ref(`admins/${uid}`).set(true);
+  enterApp();
+}
+
+function enterApp() {
+  updateHeader();
+  showScreen('screen-main');
+  subscribeData();
+}
+
+// ══════════════════════════════════════════
+//  SUBSCRIPTIONS
+// ══════════════════════════════════════════
+function subscribeData() {
+  db.ref('users').on('value', s => {
+    allUsers = s.val() || {};
+    renderCalendar(); renderTeam(); updateLegend();
+  });
+  db.ref('compensatory').on('value', s => {
+    allComp = s.val() || {};
+    renderCalendar(); renderComp(); updatePendBanner();
+  });
+  db.ref('vacations').on('value', s => {
+    allVac = s.val() || {};
+    renderCalendar(); renderVac();
+  });
+  db.ref('config').once('value', s => {
+    const c = s.val();
+    if (c) {
+      bossWa    = c.bossWa    || bossWa;
+      bossName  = c.bossName  || bossName;
+      adminCode = c.adminCode || adminCode;
+    }
+  });
+  db.ref('admins').on('value', s => {
+    allAdmins = s.val() || {};
+    if (me) {
+      const wasAdmin = me.isAdmin;
+      me.isAdmin = !!allAdmins[me.uid];
+      if (wasAdmin !== me.isAdmin) lsSet('user', JSON.stringify(me));
+    }
+    renderCalendar(); renderComp(); updatePendBanner();
+  });
+  // Push boss config
+  const fc = JSON.parse(lsGet('fb_cfg') || '{}');
+  if (fc.bossWa) db.ref('config').set({ bossWa: fc.bossWa, bossName: fc.bossName || bossName, adminCode: fc.adminCode || adminCode });
+}
+
+// ══════════════════════════════════════════
+//  HEADER
+// ══════════════════════════════════════════
+function updateHeader() {
+  if (!me) return;
+  const h = now.getHours();
+  document.getElementById('hdr-greet').textContent = h < 12 ? 'Buenos días' : h < 19 ? 'Buenas tardes' : 'Buenas noches';
+  document.getElementById('hdr-name').textContent  = me.name.split(' ')[0];
+  const av = document.getElementById('hdr-av');
+  av.style.background = me.color;
+  av.textContent = me.name.charAt(0).toUpperCase();
+}
+
+// ══════════════════════════════════════════
+//  TABS
+// ══════════════════════════════════════════
+function switchTab(tab) {
+  ['cal','comp','vac','team'].forEach(t => {
+    document.getElementById('tb-' + t).classList.toggle('active', t === tab);
+    document.getElementById('view-' + t).style.display = t === tab ? '' : 'none';
+  });
+  if (tab === 'comp')  renderComp();
+  if (tab === 'vac')   renderVac();
+  if (tab === 'team')  renderTeam();
+}
+
+// ══════════════════════════════════════════
+//  CALENDAR
+// ══════════════════════════════════════════
+function renderCalendar() {
+  document.getElementById('cal-lbl').textContent = `${MONTHS[calM]} ${calY}`;
+
+  const first    = new Date(calY, calM, 1).getDay();
+  const daysInM  = new Date(calY, calM + 1, 0).getDate();
+  const daysInP  = new Date(calY, calM, 0).getDate();
+  const todayStr = ds(now);
+  const cells    = [];
+
+  for (let i = first - 1; i >= 0; i--)
+    cells.push({ d: daysInP - i, m: calM - 1, y: calY, other: true });
+  for (let d = 1; d <= daysInM; d++)
+    cells.push({ d, m: calM, y: calY, other: false });
+  while (cells.length < 42)
+    cells.push({ d: cells.length - first - daysInM + 1, m: calM + 1, y: calY, other: true });
+
+  document.getElementById('cal-grid').innerHTML = cells.map(c => {
+    const date = `${c.y}-${pad(c.m + 1)}-${pad(c.d)}`;
+    const isToday = date === todayStr;
+    const isSel   = date === selDate;
+    const dots    = dotsFor(date);
+    const vcls    = vacCls(date);
+    return `<div class="cday ${c.other?'other':''} ${isToday?'today':''} ${isSel?'sel':''} ${vcls}"
+      onclick="selectDay('${date}')">
+      <span class="dnum">${c.d}</span>
+      ${dots.length ? `<div class="ddots">${dots.slice(0,3).map(col=>`<div class="ddot" style="background:${col}"></div>`).join('')}</div>` : '<div style="height:5px"></div>'}
+    </div>`;
+  }).join('');
+
+  if (selDate) renderPanel(selDate);
+}
+
+function dotsFor(date) {
+  const cols = [];
+  Object.entries(allComp).forEach(([uid, days]) => {
+    if (!days) return;
+    Object.values(days).forEach(d => {
+      if (d.generatedDate === date) {
+        const c = allUsers[uid]?.color || '#888';
+        if (!cols.includes(c)) cols.push(c);
+      }
+    });
+  });
+  return cols;
+}
+
+function vacCls(date) {
+  const t = new Date(date + 'T00:00:00');
+  let cls = [];
+  Object.values(allVac).forEach(vacs => {
+    if (!vacs) return;
+    Object.values(vacs).forEach(v => {
+      if (!v.startDate || !v.endDate) return;
+      const s = new Date(v.startDate + 'T00:00:00');
+      const e = new Date(v.endDate + 'T00:00:00');
+      if (t < s || t > e) return;
+      if (s.getTime() === e.getTime()) cls.push('vr vr-1');
+      else if (t.getTime() === s.getTime()) cls.push('vr vr-s');
+      else if (t.getTime() === e.getTime()) cls.push('vr vr-e');
+      else cls.push('vr');
+    });
+  });
+  return cls[0] || '';
+}
+
+function updateLegend() {
+  const items = [
+    { color: 'var(--gold)', label: 'Compensatorio' },
+    { color: 'rgba(75,159,255,0.6)', label: 'Vacaciones' },
+  ];
+  Object.values(allUsers).slice(0, 4).forEach(u => {
+    if (!items.find(i => i.color === u.color)) items.push({ color: u.color, label: u.name.split(' ')[0] });
+  });
+  document.getElementById('cal-legend').innerHTML = items.slice(0, 6).map(i =>
+    `<div class="leg-i"><div class="leg-d" style="background:${i.color}"></div>${i.label}</div>`
+  ).join('');
+}
+
+function calNav(dir) {
+  calM += dir;
+  if (calM < 0)  { calM = 11; calY--; }
+  if (calM > 11) { calM = 0;  calY++; }
+  renderCalendar();
+}
+
+function selectDay(date) {
+  selDate = date;
+  renderCalendar();
+}
+
+// ══════════════════════════════════════════
+//  DAY PANEL
+// ══════════════════════════════════════════
+function renderPanel(date) {
+  const d = new Date(date + 'T00:00:00');
+  document.getElementById('panel-title').textContent =
+    `${WDAYS[d.getDay()]} ${d.getDate()} de ${MONTHS[d.getMonth()]}`;
+
+  const evs = eventsFor(date);
+  const el  = document.getElementById('panel-events');
+  if (!evs.length) { el.innerHTML = '<div class="no-ev">Sin eventos este día</div>'; return; }
+
+  el.innerHTML = evs.map(e => {
+    const isMe = e.uid === me?.uid;
+    let badge = e.type === 'comp' ? badgeHtml(e.status) : '';
+    let acts  = '';
+    if (isMe && e.type === 'comp' && e.status === 'pending')
+      acts += `<button class="ico-btn" title="Solicitar" onclick="openWa('${e.uid}','${e.id}')">📲</button>`;
+    if (e.type === 'comp' && e.status === 'requested' && me?.isAdmin)
+      acts += `<button class="ico-btn" title="Autorizar" onclick="openAuth('${e.uid}','${e.id}','comp')">✅</button>`;
+    if (isMe && e.type === 'comp' && (e.status === 'requested' || e.status === 'authorized'))
+      acts += `<button class="ico-btn" title="Cancelar" onclick="cancelComp('${e.id}')">❌</button>`;
+    if (isMe && (e.type !== 'comp' || e.status === 'pending' || e.status === 'denied'))
+      acts += `<button class="ico-btn" onclick="delItem('${e.type}','${e.uid}','${e.id}')">🗑️</button>`;
+    return `<div class="ev-card">
+      <div class="ev-bar" style="background:${e.color}"></div>
+      <div class="ev-info">
+        <div class="ev-user">${e.name}</div>
+        <div class="ev-type">${e.type==='comp'?'⏱️ Compensatorio':'🌴 Vacaciones'}${e.note?' · '+e.note:''}</div>
+      </div>
+      ${badge}
+      <div class="ev-actions">${acts}</div>
+    </div>`;
+  }).join('');
+}
+
+function eventsFor(date) {
+  const t    = new Date(date + 'T00:00:00');
+  const evs  = [];
+  Object.entries(allComp).forEach(([uid, days]) => {
+    if (!days) return;
+    Object.entries(days).forEach(([id, d]) => {
+      if (d.generatedDate === date) evs.push({
+        uid, id, type:'comp',
+        color: allUsers[uid]?.color || '#888',
+        name:  allUsers[uid]?.name  || 'Usuario',
+        status: d.status || 'pending',
+        note: d.reason || ''
+      });
+    });
+  });
+  Object.entries(allVac).forEach(([uid, vacs]) => {
+    if (!vacs) return;
+    Object.entries(vacs).forEach(([id, v]) => {
+      if (!v.startDate || !v.endDate) return;
+      const s = new Date(v.startDate + 'T00:00:00');
+      const e = new Date(v.endDate   + 'T00:00:00');
+      if (t >= s && t <= e) evs.push({
+        uid, id, type:'vac',
+        color: allUsers[uid]?.color || '#888',
+        name:  allUsers[uid]?.name  || 'Usuario',
+        status: v.status || 'pending',
+        note: v.note || ''
+      });
+    });
+  });
+  return evs;
+}
+
+// ══════════════════════════════════════════
+//  COMPENSATORIOS
+// ══════════════════════════════════════════
+function openAddComp(preDate) {
+  document.getElementById('mc-date').value   = preDate || selDate || ds(now);
+  document.getElementById('mc-reason').value = '';
+  openModal('modal-comp');
+}
+
+function saveComp() {
+  const date   = document.getElementById('mc-date').value;
+  const reason = document.getElementById('mc-reason').value.trim();
+  if (!date) { toast('Seleccioná una fecha', 'e'); return; }
+  if (!me) return;
+
+  db.ref(`compensatory/${me.uid}/${genId()}`).set({
+    generatedDate: date, reason, status: 'pending', createdAt: Date.now()
+  }).then(() => {
+    closeModal('modal-comp');
+    toast('Compensatorio guardado ✓', 's');
+    selDate = date; renderCalendar();
+  });
+}
+
+function openWa(uid, id) {
+  const comp = allComp[uid]?.[id];
+  if (!comp) return;
+  pendingWa = { uid, id, comp };
+  const msg = buildWaMsg(comp);
+  document.getElementById('wa-text').textContent = msg;
+  openModal('modal-wa');
+}
+
+function buildWaMsg(comp) {
+  const date   = fmt(comp.generatedDate);
+  const reason = comp.reason ? ` Motivo: ${comp.reason}.` : '';
+  return `Hola ${bossName}! Soy ${me.name} y solicito tomarme mi día compensatorio el ${date}.${reason} ¡Muchas gracias!`;
+}
+
+function doSendWa() {
+  if (!pendingWa) return;
+  const { uid, id, comp } = pendingWa;
+  const num = (bossWa || '').replace(/\D/g, '');
+  const url = `https://wa.me/${num}?text=${encodeURIComponent(buildWaMsg(comp))}`;
+
+  db.ref(`compensatory/${uid}/${id}`).update({ status: 'requested', requestedAt: Date.now() });
+  closeModal('modal-wa');
+  window.open(url, '_blank');
+  toast('Mensaje enviado por WhatsApp', 's');
+  pendingWa = null;
+}
+
+function cancelComp(id) {
+  const c = allComp[me?.uid]?.[id];
+  if (!c) return;
+  if (!confirm(`¿Cancelar el compensatorio del ${fmt(c.generatedDate)}? Se eliminará y se enviará un WhatsApp avisando al jefe.`)) return;
+
+  const num = (bossWa || '').replace(/\D/g, '');
+  const msg = `Hola ${bossName}! Soy ${me.name}, te aviso que cancelo mi pedido de compensatorio del ${fmt(c.generatedDate)}. ¡Gracias!`;
+  const url = `https://wa.me/${num}?text=${encodeURIComponent(msg)}`;
+
+  db.ref(`compensatory/${me.uid}/${id}`).remove().then(() => {
+    window.open(url, '_blank');
+    toast('Cancelado y aviso enviado', 's');
+  });
+}
+
+function renderComp() {
+  const el    = document.getElementById('comp-content');
+  const title = document.getElementById('comp-title');
+  if (!me) return;
+
+  if (me.isAdmin) return renderCompAdmin(el, title);
+
+  title.textContent = 'Mis compensatorios';
+  const items = Object.entries(allComp[me.uid] || {})
+    .sort((a, b) => (b[1].generatedDate || '').localeCompare(a[1].generatedDate || ''));
+
+  if (!items.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-ico">⏱️</div><div class="empty-txt">No tenés días compensatorios cargados.</div></div>
+      <button class="btn btn-gold" onclick="openAddComp()">+ Agregar compensatorio</button>`;
+    return;
+  }
+
+  el.innerHTML = `<div class="list-card">${items.map(([id, c]) => {
+    let act = '';
+    if (c.status === 'pending')
+      act = `<button class="ico-btn" title="Solicitar" onclick="openWa('${me.uid}','${id}')">📲</button>`;
+    const canCancel = c.status === 'requested' || c.status === 'authorized';
+    const canDelete = c.status === 'pending' || c.status === 'denied' || !c.status;
+    return `<div class="li">
+      <div class="li-icon ic">⏱️</div>
+      <div class="li-info">
+        <div class="li-date">${fmt(c.generatedDate)}</div>
+        <div class="li-desc">${c.reason || 'Sin descripción'}</div>
+      </div>
+      <div class="li-right">
+        ${badgeHtml(c.status || 'pending')}
+        ${act}
+        ${canCancel ? `<button class="ico-btn" title="Cancelar" onclick="cancelComp('${id}')">❌</button>` : ''}
+        ${canDelete ? `<button class="ico-btn" onclick="delItem('comp','${me.uid}','${id}')">🗑️</button>` : ''}
+      </div>
+    </div>`;
+  }).join('')}</div>
+  <button class="btn btn-gold" style="margin-top:4px" onclick="openAddComp()">+ Agregar compensatorio</button>`;
+}
+
+function renderCompAdmin(el, title) {
+  title.textContent = 'Compensatorios del equipo';
+  // Aplanar: traer todos los comps de todos los users
+  const all = [];
+  Object.entries(allComp).forEach(([uid, days]) => {
+    if (!days) return;
+    Object.entries(days).forEach(([id, c]) => all.push({ uid, id, ...c }));
+  });
+  // Ordenar: primero los que requieren acción (requested), después por fecha
+  const order = { requested: 0, pending: 1, authorized: 2, denied: 3 };
+  all.sort((a, b) => {
+    const o = (order[a.status] ?? 9) - (order[b.status] ?? 9);
+    return o !== 0 ? o : (b.generatedDate || '').localeCompare(a.generatedDate || '');
+  });
+
+  if (!all.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-ico">⏱️</div><div class="empty-txt">Nadie del equipo cargó compensatorios todavía.</div></div>`;
+    return;
+  }
+
+  el.innerHTML = `<div class="list-card">${all.map(c => {
+    const u = allUsers[c.uid] || { name: 'Usuario', color: '#888' };
+    let act = '';
+    if (c.status === 'requested')
+      act = `<button class="ico-btn" title="Autorizar / Denegar" onclick="openAuth('${c.uid}','${c.id}','comp')">✅</button>`;
+    return `<div class="li">
+      <div class="li-icon" style="background:${u.color}22;color:${u.color};font-weight:800">${u.name.charAt(0).toUpperCase()}</div>
+      <div class="li-info">
+        <div class="li-date">${u.name} <span style="color:var(--text3);font-weight:500">· ${fmt(c.generatedDate)}</span></div>
+        <div class="li-desc">${c.reason || 'Sin descripción'}</div>
+      </div>
+      <div class="li-right">
+        ${badgeHtml(c.status || 'pending')}
+        ${act}
+      </div>
+    </div>`;
+  }).join('')}</div>`;
+}
+
+// ══════════════════════════════════════════
+//  VACACIONES
+// ══════════════════════════════════════════
+function openAddVac(preStart) {
+  document.getElementById('mv-start').value = preStart || selDate || '';
+  document.getElementById('mv-end').value   = '';
+  document.getElementById('mv-note').value  = '';
+  document.getElementById('conflict-box').style.display = 'none';
+  openModal('modal-vac');
+}
+
+function saveVac() {
+  const start = document.getElementById('mv-start').value;
+  const end   = document.getElementById('mv-end').value;
+  const note  = document.getElementById('mv-note').value.trim();
+
+  if (!start || !end) { toast('Ingresá las fechas', 'e'); return; }
+  if (start > end)    { toast('La fecha de inicio debe ser anterior al fin', 'e'); return; }
+  if (!me) return;
+
+  const conflict = vacConflict(start, end);
+  if (conflict) {
+    document.getElementById('conflict-msg').textContent =
+      `${conflict.name} ya tiene vacaciones del ${fmt(conflict.start)} al ${fmt(conflict.end)}`;
+    document.getElementById('conflict-box').style.display = 'block';
+    toast('⚠️ Hay un conflicto de fechas', 'w');
+    return;
+  }
+
+  db.ref(`vacations/${me.uid}/${genId()}`).set({
+    startDate: start, endDate: end, note, createdAt: Date.now()
+  }).then(() => {
+    closeModal('modal-vac');
+    toast('Vacaciones guardadas ✓', 's');
+    switchTab('cal');
+  });
+}
+
+function vacConflict(start, end, excludeId) {
+  const s = new Date(start + 'T00:00:00');
+  const e = new Date(end   + 'T00:00:00');
+  for (const [uid, vacs] of Object.entries(allVac)) {
+    if (uid === me?.uid || !vacs) continue;
+    for (const [id, v] of Object.entries(vacs)) {
+      if (id === excludeId || !v.startDate || !v.endDate) continue;
+      const vs = new Date(v.startDate + 'T00:00:00');
+      const ve = new Date(v.endDate   + 'T00:00:00');
+      if (s <= ve && e >= vs)
+        return { name: allUsers[uid]?.name || 'Otro usuario', start: v.startDate, end: v.endDate };
+    }
+  }
+  return null;
+}
+
+function renderVac() {
+  const el = document.getElementById('vac-content');
+  if (!me) return;
+  const items = Object.entries(allVac[me.uid] || {})
+    .sort((a, b) => (b[1].startDate || '').localeCompare(a[1].startDate || ''));
+
+  if (!items.length) {
+    el.innerHTML = `<div class="empty"><div class="empty-ico">🌴</div><div class="empty-txt">No tenés vacaciones cargadas.</div></div>
+      <button class="btn btn-gold" onclick="openAddVac()">+ Agregar vacaciones</button>`;
+    return;
+  }
+
+  el.innerHTML = `<div class="list-card">${items.map(([id, v]) => {
+    const days = Math.round((new Date(v.endDate) - new Date(v.startDate)) / 86400000) + 1;
+    return `<div class="li">
+      <div class="li-icon iv">🌴</div>
+      <div class="li-info">
+        <div class="li-date">${fmt(v.startDate)} → ${fmt(v.endDate)}</div>
+        <div class="li-desc">${days} días${v.note?' · '+v.note:''}</div>
+      </div>
+      <div class="li-right">
+        <button class="ico-btn" onclick="delItem('vac','${me.uid}','${id}')">🗑️</button>
+      </div>
+    </div>`;
+  }).join('')}</div>
+  <button class="btn btn-gold" style="margin-top:4px" onclick="openAddVac()">+ Agregar vacaciones</button>`;
+}
+
+// ══════════════════════════════════════════
+//  TEAM
+// ══════════════════════════════════════════
+function renderTeam() {
+  const el = document.getElementById('team-content');
+  const members = Object.entries(allUsers).sort((a, b) => a[1].name?.localeCompare(b[1].name));
+
+  if (!members.length) {
+    el.innerHTML = '<div class="empty"><div class="empty-ico">👥</div><div class="empty-txt">Aún no hay integrantes.</div></div>';
+    return;
+  }
+
+  el.innerHTML = members.map(([uid, u]) => {
+    const compList  = Object.values(allComp[uid] || {});
+    const vacList   = Object.values(allVac[uid]  || {});
+    const authComp  = compList.filter(c => c.status === 'authorized').length;
+    const pendComp  = compList.filter(c => c.status === 'requested').length;
+    const isMe      = uid === me?.uid;
+    const isAdmin = !!allAdmins[uid];
+    return `<div class="member-card">
+      <div class="m-av" style="background:${u.color}">${u.name.charAt(0).toUpperCase()}</div>
+      <div class="m-info">
+        <div class="m-name">${u.name}${isAdmin?' 👑':''}${isMe?' <span style="font-size:10px;color:var(--text3)">(yo)</span>':''}</div>
+        <div class="m-status">${authComp}/${compList.length} comp. autorizados · ${vacList.length} vac.${pendComp?' · <span style="color:var(--blue)">'+pendComp+' pendiente(s)</span>':''}</div>
+      </div>
+      <div class="m-counts">
+        <div class="cnt"><div class="cnt-n" style="color:var(--gold)">${compList.length}</div><div class="cnt-l">Comp</div></div>
+        <div class="cnt"><div class="cnt-n" style="color:var(--blue)">${vacList.length}</div><div class="cnt-l">Vac</div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function updatePendBanner() {
+  if (!me) return;
+  const banner = document.getElementById('pend-banner');
+  let n = 0;
+  if (me.isAdmin) {
+    // Admin: contar TODOS los pendientes del equipo
+    Object.values(allComp).forEach(days => {
+      if (!days) return;
+      Object.values(days).forEach(c => { if (c.status === 'requested') n++; });
+    });
+    banner.querySelector('.pb-title').textContent = 'Solicitudes pendientes de autorizar';
+    banner.querySelector('.pb-sub').textContent   = 'Tocá para revisarlas';
+  } else {
+    // Usuario normal: contar sus propios autorizados/denegados como aviso
+    Object.values(allComp[me.uid] || {}).forEach(c => { if (c.status === 'requested') n++; });
+    banner.querySelector('.pb-title').textContent = 'Tenés solicitudes esperando respuesta';
+    banner.querySelector('.pb-sub').textContent   = 'El jefe todavía no autorizó';
+  }
+  banner.style.display = n > 0 ? 'flex' : 'none';
+  document.getElementById('pend-count').textContent = n;
+}
+
+// ══════════════════════════════════════════
+//  AUTHORIZATION
+// ══════════════════════════════════════════
+function openAuth(uid, id, type) {
+  const item = type === 'comp' ? allComp[uid]?.[id] : allVac[uid]?.[id];
+  if (!item) return;
+  pendingAuth = { uid, id, type };
+
+  const name = allUsers[uid]?.name || 'Usuario';
+  let detail = '';
+  if (type === 'comp') {
+    detail = `<strong>${name}</strong> solicita tomarse un compensatorio el <strong>${fmt(item.generatedDate)}</strong>.${item.reason?`<br><em style="color:var(--text2)">Motivo: ${item.reason}</em>`:''}
+              <br><br><span style="color:var(--text2);font-size:12px">Estado actual: ${statusLbl(item.status)}</span>`;
+  } else {
+    const days = Math.round((new Date(item.endDate) - new Date(item.startDate)) / 86400000) + 1;
+    detail = `<strong>${name}</strong> tiene vacaciones del <strong>${fmt(item.startDate)}</strong> al <strong>${fmt(item.endDate)}</strong> (${days} días).${item.note?`<br><em style="color:var(--text2)">${item.note}</em>`:''}`;
+  }
+
+  document.getElementById('auth-title').textContent = type === 'comp' ? 'Gestionar compensatorio' : 'Gestionar vacaciones';
+  document.getElementById('auth-detail').innerHTML  = detail;
+  openModal('modal-auth');
+}
+
+function doStatusChange(status) {
+  if (!pendingAuth) return;
+  const { uid, id, type } = pendingAuth;
+  const path = type === 'comp' ? `compensatory/${uid}/${id}` : `vacations/${uid}/${id}`;
+  db.ref(path).update({ status, authorizedAt: Date.now(), authorizedBy: me?.name || '?' });
+  closeModal('modal-auth');
+  toast(status === 'authorized' ? 'Autorizado ✓' : 'Denegado', status === 'authorized' ? 's' : 'w');
+  pendingAuth = null;
+}
+
+// ══════════════════════════════════════════
+//  DELETE
+// ══════════════════════════════════════════
+function delItem(type, uid, id) {
+  if (uid !== me?.uid) { toast('Solo podés eliminar tus propios elementos', 'e'); return; }
+  const path = type === 'comp' ? `compensatory/${uid}/${id}` : `vacations/${uid}/${id}`;
+  db.ref(path).remove().then(() => { toast('Eliminado', 's'); renderCalendar(); });
+}
+
+// ══════════════════════════════════════════
+//  USER MENU
+// ══════════════════════════════════════════
+// (triggered by avatar click)
+document.getElementById('modal-user').addEventListener('click', function(e) {
+  if (e.target === this) closeModal('modal-user');
+});
+function showUserMenuData() {
+  if (!me) return;
+  document.getElementById('um-av').style.background = me.color;
+  document.getElementById('um-av').textContent = me.name.charAt(0).toUpperCase();
+  document.getElementById('um-name').textContent = me.name + (me.isAdmin ? ' 👑' : '');
+  document.getElementById('um-id').textContent   = (me.isAdmin ? 'Administrador · ' : '') + 'ID: ' + me.uid.slice(0, 10) + '…';
+}
+
+// ══════════════════════════════════════════
+//  HELPERS
+// ══════════════════════════════════════════
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  if (id === 'screen-main') updateHeader();
+}
+
+function openModal(id) {
+  if (id === 'modal-user') showUserMenuData();
+  document.getElementById(id).classList.add('open');
+}
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+// backdrop close
+document.querySelectorAll('.modal-ov').forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('open'); });
+});
+
+function v(id) { return document.getElementById(id).value; }
+
+function lsGet(k) { try { return localStorage.getItem(k); } catch(e) { return null; } }
+function lsSet(k, v) { try { localStorage.setItem(k, v); } catch(e) {} }
+
+function genId() { return Date.now().toString(36) + Math.random().toString(36).slice(2, 7); }
+
+function ds(d) {
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function pad(n) { return String(n).padStart(2,'0'); }
+
+function fmt(ds) {
+  if (!ds) return '?';
+  const [y, m, d] = ds.split('-');
+  return `${d}/${m}/${y}`;
+}
+
+function statusLbl(s) {
+  return { pending:'Pendiente', requested:'Solicitado', authorized:'Autorizado', denied:'Denegado' }[s] || s;
+}
+
+function badgeHtml(status) {
+  const cls = { pending:'b-pend', requested:'b-req', authorized:'b-auth', denied:'b-den' }[status] || 'b-pend';
+  return `<span class="badge ${cls}">${statusLbl(status)}</span>`;
+}
+
+let toastT;
+function toast(msg, type='') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = `toast ${type} show`;
+  clearTimeout(toastT);
+  toastT = setTimeout(() => el.classList.remove('show'), 2800);
+}
+
+// ══════════════════════════════════════════
+//  START
+// ══════════════════════════════════════════
+boot();
+</script>
+</body>
+</html>

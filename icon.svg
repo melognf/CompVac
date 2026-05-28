@@ -3,81 +3,85 @@
   <defs>
     <linearGradient id="bg" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#FFFFFF"/>
-      <stop offset="100%" stop-color="#F2F3F5"/>
+      <stop offset="100%" stop-color="#F4F5F7"/>
     </linearGradient>
     <linearGradient id="red" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0%" stop-color="#EF4444"/>
       <stop offset="100%" stop-color="#C81E1E"/>
     </linearGradient>
+    <linearGradient id="black" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#1A1A1A"/>
+      <stop offset="100%" stop-color="#000000"/>
+    </linearGradient>
   </defs>
 
-  <!-- Fondo blanco -->
+  <!-- ─── Fondo cuadrado redondeado ─── -->
   <rect width="512" height="512" rx="96" ry="96" fill="url(#bg)"/>
 
-  <!-- ─────────── CALENDARIO ─────────── -->
-  <!-- Anillos de binding -->
-  <rect x="160" y="75" width="20" height="58" rx="10" fill="#0A0A0A"/>
-  <rect x="332" y="75" width="20" height="58" rx="10" fill="#0A0A0A"/>
+  <!-- ─── Anillos del binding ─── -->
+  <rect x="184" y="115" width="20" height="58" rx="10" fill="url(#black)"/>
+  <rect x="308" y="115" width="20" height="58" rx="10" fill="url(#black)"/>
 
-  <!-- Cuerpo principal del calendario (borde negro grueso, fondo blanco) -->
-  <rect x="62" y="100" width="388" height="372" rx="28" ry="28" fill="#FFFFFF" stroke="#0A0A0A" stroke-width="10"/>
+  <!-- ─── Cuerpo del calendario (centrado, con padding) ─── -->
+  <rect x="95" y="150" width="322" height="305" rx="26" ry="26"
+        fill="#FFFFFF" stroke="url(#black)" stroke-width="9"/>
 
-  <!-- Banda roja arriba (header del mes) -->
-  <path d="M 67 168 L 445 168 L 445 128 Q 445 105 422 105 L 90 105 Q 67 105 67 128 Z" fill="url(#red)"/>
+  <!-- ─── Header rojo ─── -->
+  <path d="M 100 200 L 412 200 L 412 174 Q 412 163 401 163 L 111 163 Q 100 163 100 174 Z" fill="url(#red)"/>
 
-  <!-- ─────────── GRID DE DÍAS (claramente visible) ─────────── -->
-  <!-- Líneas horizontales -->
-  <g stroke="#0A0A0A" stroke-width="3" opacity="0.18">
-    <line x1="62" y1="240" x2="450" y2="240"/>
-    <line x1="62" y1="305" x2="450" y2="305"/>
-    <line x1="62" y1="370" x2="450" y2="370"/>
-    <line x1="62" y1="435" x2="450" y2="435"/>
-    <!-- Verticales -->
-    <line x1="159" y1="175" x2="159" y2="472"/>
-    <line x1="256" y1="175" x2="256" y2="472"/>
-    <line x1="353" y1="175" x2="353" y2="472"/>
+  <!-- ─── Grilla 4x5 (sutil) ─── -->
+  <g stroke="#0a0a0a" stroke-width="2" opacity="0.15">
+    <!-- Horizontales (entre filas) -->
+    <line x1="95" y1="252" x2="417" y2="252"/>
+    <line x1="95" y1="302" x2="417" y2="302"/>
+    <line x1="95" y1="352" x2="417" y2="352"/>
+    <line x1="95" y1="402" x2="417" y2="402"/>
+    <!-- Verticales (entre columnas) -->
+    <line x1="175" y1="207" x2="175" y2="455"/>
+    <line x1="256" y1="207" x2="256" y2="455"/>
+    <line x1="337" y1="207" x2="337" y2="455"/>
   </g>
 
-  <!-- Pequeños puntitos negros = días normales en cada celda -->
-  <g fill="#0A0A0A" opacity="0.40">
-    <!-- fila 1 (debajo del header) -->
-    <circle cx="110" cy="207" r="5"/><circle cx="207" cy="207" r="5"/><circle cx="305" cy="207" r="5"/><circle cx="402" cy="207" r="5"/>
-    <!-- fila 2 -->
-    <circle cx="110" cy="272" r="5"/><circle cx="207" cy="272" r="5"/><circle cx="305" cy="272" r="5"/><circle cx="402" cy="272" r="5"/>
-    <!-- fila 3: la celda central (256,337) tendrá el sol → resto sí -->
-    <circle cx="110" cy="337" r="5"/><circle cx="207" cy="337" r="5"/><circle cx="402" cy="337" r="5"/>
-    <!-- fila 4 -->
-    <circle cx="110" cy="402" r="5"/><circle cx="207" cy="402" r="5"/><circle cx="305" cy="402" r="5"/><circle cx="402" cy="402" r="5"/>
-    <!-- fila 5 -->
-    <circle cx="110" cy="453" r="5"/><circle cx="207" cy="453" r="5"/><circle cx="305" cy="453" r="5"/><circle cx="402" cy="453" r="5"/>
+  <!-- ─── Puntitos en cada celda (días) ─── -->
+  <g fill="#0a0a0a" opacity="0.40">
+    <!-- Fila 1 -->
+    <circle cx="135" cy="227" r="4"/><circle cx="216" cy="227" r="4"/><circle cx="296" cy="227" r="4"/><circle cx="377" cy="227" r="4"/>
+    <!-- Fila 2 -->
+    <circle cx="135" cy="277" r="4"/><circle cx="216" cy="277" r="4"/><circle cx="296" cy="277" r="4"/><circle cx="377" cy="277" r="4"/>
+    <!-- Fila 3 (celda del avión sin punto) -->
+    <circle cx="135" cy="327" r="4"/><circle cx="216" cy="327" r="4"/><circle cx="377" cy="327" r="4"/>
+    <!-- Fila 4 -->
+    <circle cx="135" cy="377" r="4"/><circle cx="216" cy="377" r="4"/><circle cx="296" cy="377" r="4"/><circle cx="377" cy="377" r="4"/>
+    <!-- Fila 5 -->
+    <circle cx="135" cy="427" r="4"/><circle cx="216" cy="427" r="4"/><circle cx="296" cy="427" r="4"/><circle cx="377" cy="427" r="4"/>
   </g>
 
-  <!-- ─────────── AVIÓN DESPEGANDO en la celda destacada ─────────── -->
-  <g transform="translate(290 350) rotate(-35)">
-    <!-- Estela / trail detrás del avión (sugiere movimiento/despegue) -->
-    <g stroke="url(#red)" stroke-width="4" stroke-linecap="round" opacity="0.45">
-      <line x1="0" y1="38"  x2="0" y2="50"/>
-      <line x1="0" y1="58"  x2="0" y2="68"/>
+  <!-- ─── Avión despegando en la celda destacada ─── -->
+  <g transform="translate(296 327) rotate(-30)">
+    <!-- Estela sutil -->
+    <g stroke="url(#red)" stroke-width="3" stroke-linecap="round" opacity="0.4">
+      <line x1="0" y1="30" x2="0" y2="40"/>
+      <line x1="0" y1="46" x2="0" y2="55"/>
     </g>
-    <!-- Cuerpo del avión (silueta vista desde arriba, inclinada hacia arriba-derecha) -->
+    <!-- Cuerpo del avión -->
     <path d="
-      M -5 -38
-      Q 0 -42 5 -38
-      L 6 -10
-      L 38 6
-      L 38 13
-      L 6 8
-      L 6 22
-      L 18 30
-      L 18 34
-      L 0 30
-      L -18 34
-      L -18 30
-      L -6 22
-      L -6 8
-      L -38 13
-      L -38 6
-      L -6 -10
+      M -4 -30
+      Q 0 -34 4 -30
+      L 5 -8
+      L 30 5
+      L 30 11
+      L 5 6
+      L 5 17
+      L 14 23
+      L 14 27
+      L 0 23
+      L -14 27
+      L -14 23
+      L -5 17
+      L -5 6
+      L -30 11
+      L -30 5
+      L -5 -8
       Z
     " fill="url(#red)"/>
   </g>

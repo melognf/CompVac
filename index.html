@@ -268,6 +268,35 @@ select.ifield{cursor:pointer}
 .empty-ico{font-size:38px}
 .empty-txt{font-size:13px;text-align:center;line-height:1.5}
 
+/* ── VACATION TIMELINE (vista admin) ── */
+.vt-wrap{background:var(--card);border:1px solid var(--card-b);border-radius:var(--r);padding:10px 0 12px;margin-bottom:14px;overflow:hidden}
+.vt-controls{display:flex;align-items:center;justify-content:space-between;padding:0 14px 10px;gap:8px}
+.vt-range-lbl{font-size:13px;font-weight:700;color:var(--text);text-transform:capitalize}
+.vt-nav{display:flex;gap:4px}
+.vt-nav-btn{background:rgba(255,255,255,0.06);border:1px solid var(--card-b);color:var(--text);border-radius:8px;padding:5px 10px;font-size:12px;font-weight:700;cursor:pointer;transition:background .15s}
+.vt-nav-btn:active{background:rgba(255,255,255,0.12)}
+.vt-scroll{overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;position:relative}
+.vt-scroll::-webkit-scrollbar{height:4px}
+.vt-scroll::-webkit-scrollbar-thumb{background:rgba(255,255,255,0.18);border-radius:2px}
+.vt-grid{display:grid;min-width:max-content;grid-template-columns:78px 1fr}
+.vt-corner{position:sticky;left:0;z-index:3;background:var(--card);border-right:1px solid var(--card-b)}
+.vt-months-row{display:flex;height:32px;position:relative;border-bottom:1px solid var(--card-b)}
+.vt-month{flex:0 0 auto;border-right:1px solid rgba(255,255,255,0.04);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.06em;height:32px}
+.vt-month.curr{color:var(--gold);background:rgba(240,180,41,0.05)}
+.vt-row{display:contents}
+.vt-user{position:sticky;left:0;z-index:2;background:var(--card);border-right:1px solid var(--card-b);height:42px;display:flex;align-items:center;gap:7px;padding:0 8px;border-bottom:1px solid rgba(255,255,255,0.04)}
+.vt-av{width:24px;height:24px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:800;flex-shrink:0;color:#fff;overflow:hidden;position:relative}
+.vt-av img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0}
+.vt-uname{font-size:11px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vt-track{position:relative;height:42px;border-bottom:1px solid rgba(255,255,255,0.04);background:repeating-linear-gradient(to right,transparent 0,transparent calc(var(--m-width,80px) - 1px),rgba(255,255,255,0.04) calc(var(--m-width,80px) - 1px),rgba(255,255,255,0.04) var(--m-width,80px))}
+.vt-bar{position:absolute;top:9px;bottom:9px;border-radius:5px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:800;color:#fff;text-shadow:0 1px 1px rgba(0,0,0,0.3);overflow:hidden;white-space:nowrap;padding:0 4px;transition:transform .15s,box-shadow .15s;border:1px solid rgba(0,0,0,0.18)}
+.vt-bar:active{transform:scale(.97)}
+.vt-bar:hover{box-shadow:0 2px 8px rgba(0,0,0,0.4);z-index:5}
+.vt-today{position:absolute;top:0;bottom:0;width:2px;background:var(--red);z-index:4;pointer-events:none;box-shadow:0 0 4px rgba(239,68,68,0.6)}
+.vt-today.label::before{content:'HOY';position:absolute;top:4px;left:50%;transform:translateX(-50%);background:var(--red);color:#fff;font-size:8px;font-weight:800;padding:1px 4px;border-radius:3px;letter-spacing:.05em;line-height:1}
+.vt-empty-row{padding:18px;text-align:center;font-size:12px;color:var(--text3)}
+.vt-legend-hint{padding:6px 14px 0;font-size:10px;color:var(--text3);text-align:center;font-style:italic}
+
 /* ── PWA: banner de permiso de notificaciones + instalación ── */
 .pwa-banner{display:none;position:fixed;left:50%;top:14px;transform:translateX(-50%);background:linear-gradient(135deg,#1F2937,#111827);border:1px solid rgba(240,180,41,0.35);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);z-index:150;max-width:380px;width:calc(100% - 24px);align-items:center;gap:11px;color:var(--text)}
 .pwa-banner.show{display:flex}
@@ -420,7 +449,7 @@ select.ifield{cursor:pointer}
 
     <!-- ── TAB VAC ── -->
     <div id="view-vac" style="display:none">
-      <div class="sec-title">Mis vacaciones</div>
+      <div class="sec-title" id="vac-title">Mis vacaciones</div>
       <div id="vac-content"></div>
     </div>
 
@@ -1691,8 +1720,18 @@ function vacConflict(start, end, excludeId) {
 }
 
 function renderVac() {
-  const el = document.getElementById('vac-content');
+  const el    = document.getElementById('vac-content');
+  const title = document.getElementById('vac-title');
   if (!me) return;
+
+  // Vista admin: timeline panorámica del equipo
+  if (me.isAdmin) {
+    if (title) title.textContent = 'Vacaciones del equipo';
+    return renderVacAdmin(el);
+  }
+
+  if (title) title.textContent = 'Mis vacaciones';
+
   const items = Object.entries(allVac[me.uid] || {})
     .sort((a, b) => (b[1].startDate || '').localeCompare(a[1].startDate || ''));
 
@@ -1716,6 +1755,191 @@ function renderVac() {
     </div>`;
   }).join('')}</div>
   <button class="btn btn-gold" style="margin-top:4px" onclick="openAddVac()">+ Agregar vacaciones</button>`;
+}
+
+// ══════════════════════════════════════════
+//  VACATION TIMELINE (vista admin)
+// ══════════════════════════════════════════
+let vacTimelineStart = null; // primer mes mostrado (Date al día 1)
+const VT_MONTHS_VISIBLE = 6;  // cuántos meses se muestran a la vez
+const VT_MONTH_WIDTH = 110;   // px por mes en el grid
+
+function renderVacAdmin(el) {
+  // Inicializar la ventana en el mes actual la primera vez
+  if (!vacTimelineStart) {
+    vacTimelineStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  }
+
+  // Calcular ventana
+  const start = new Date(vacTimelineStart);
+  const end = new Date(start);
+  end.setMonth(end.getMonth() + VT_MONTHS_VISIBLE);
+  const totalDays = Math.round((end - start) / 86400000);
+
+  // Generar headers de meses
+  const months = [];
+  const cursor = new Date(start);
+  while (cursor < end) {
+    const next = new Date(cursor);
+    next.setMonth(next.getMonth() + 1);
+    const monthDays = Math.round((next - cursor) / 86400000);
+    const isCurrent = cursor.getMonth() === now.getMonth() && cursor.getFullYear() === now.getFullYear();
+    months.push({
+      label: MONTHS[cursor.getMonth()].slice(0, 3) + ' ' + String(cursor.getFullYear()).slice(2),
+      days: monthDays,
+      isCurrent
+    });
+    cursor.setMonth(cursor.getMonth() + 1);
+  }
+
+  // Posición de "hoy" en píxeles desde el inicio de la ventana
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  let todayLeft = null;
+  if (today >= start && today <= end) {
+    const dayWidth = VT_MONTH_WIDTH / 30; // aproximación (mes promedio 30 días)
+    // Cálculo más preciso: día del mes / días totales del mes * monthWidth
+    let acc = 0;
+    const cursor2 = new Date(start);
+    while (cursor2 < end) {
+      const next = new Date(cursor2);
+      next.setMonth(next.getMonth() + 1);
+      const monthDays = Math.round((next - cursor2) / 86400000);
+      if (today >= cursor2 && today < next) {
+        const dayInMonth = Math.round((today - cursor2) / 86400000);
+        todayLeft = acc + (dayInMonth / monthDays) * VT_MONTH_WIDTH;
+        break;
+      }
+      acc += VT_MONTH_WIDTH;
+      cursor2.setMonth(cursor2.getMonth() + 1);
+    }
+  }
+
+  // Posición de un rango de fechas en píxeles dentro de la ventana
+  function rangeToPx(startDateStr, endDateStr) {
+    const s = new Date(startDateStr + 'T00:00:00');
+    const e = new Date(endDateStr + 'T00:00:00');
+    e.setDate(e.getDate() + 1); // inclusive: el día de fin cuenta entero
+    const clampS = s < start ? start : s > end ? end : s;
+    const clampE = e < start ? start : e > end ? end : e;
+    if (clampE <= clampS) return null;
+
+    // Calcular left y width sumando meses
+    let left = null, width = 0;
+    let acc = 0;
+    const cur = new Date(start);
+    while (cur < end) {
+      const nxt = new Date(cur);
+      nxt.setMonth(nxt.getMonth() + 1);
+      const monthDays = Math.round((nxt - cur) / 86400000);
+
+      const sInThisMonth = clampS >= cur && clampS < nxt;
+      const eInThisMonth = clampE >  cur && clampE <= nxt;
+
+      if (sInThisMonth) {
+        const dayOffset = Math.round((clampS - cur) / 86400000);
+        left = acc + (dayOffset / monthDays) * VT_MONTH_WIDTH;
+      }
+      if (eInThisMonth) {
+        const dayOffset = Math.round((clampE - cur) / 86400000);
+        width = (acc + (dayOffset / monthDays) * VT_MONTH_WIDTH) - left;
+        break;
+      }
+      acc += VT_MONTH_WIDTH;
+      cur.setMonth(cur.getMonth() + 1);
+    }
+    if (left === null) return null;
+    if (width <= 0) width = VT_MONTH_WIDTH * 0.05;
+    return { left, width };
+  }
+
+  // Construir filas de usuarios (excluyendo admins)
+  const userRows = Object.entries(allUsers)
+    .filter(([uid]) => !allAdmins[uid])
+    .sort(([,a],[,b]) => a.name.localeCompare(b.name))
+    .map(([uid, u]) => {
+      const vacs = Object.values(allVac[uid] || {})
+        .filter(v => v.startDate && v.endDate)
+        .map(v => {
+          const pos = rangeToPx(v.startDate, v.endDate);
+          if (!pos) return null;
+          const days = Math.round((new Date(v.endDate) - new Date(v.startDate)) / 86400000) + 1;
+          return { ...pos, color: u.color, label: `${fmt(v.startDate)} → ${fmt(v.endDate)} · ${days}d${v.note?'\n'+v.note:''}`, days };
+        })
+        .filter(Boolean);
+      return { uid, u, vacs };
+    });
+
+  // Range label para el header
+  const startLbl = MONTHS[start.getMonth()] + ' ' + start.getFullYear();
+  const endMonth = new Date(end); endMonth.setMonth(endMonth.getMonth() - 1);
+  const endLbl = MONTHS[endMonth.getMonth()] + ' ' + endMonth.getFullYear();
+
+  const trackWidth = VT_MONTH_WIDTH * months.length;
+
+  // Render HTML
+  let html = `
+    <div class="vt-controls">
+      <div class="vt-range-lbl">${startLbl} → ${endLbl}</div>
+      <div class="vt-nav">
+        <button class="vt-nav-btn" onclick="vtNav(-1)">‹</button>
+        <button class="vt-nav-btn" onclick="vtToday()">Hoy</button>
+        <button class="vt-nav-btn" onclick="vtNav(1)">›</button>
+      </div>
+    </div>
+
+    <div class="vt-wrap" style="padding-top:0">
+      <div class="vt-scroll" id="vt-scroll">
+        <div class="vt-grid" style="grid-template-columns:78px ${trackWidth}px">
+          <!-- Header row -->
+          <div class="vt-corner" style="height:32px;border-bottom:1px solid var(--card-b);display:flex;align-items:center;justify-content:center;font-size:10px;color:var(--text3);font-weight:700;letter-spacing:.05em">EQUIPO</div>
+          <div class="vt-months-row" style="width:${trackWidth}px">
+            ${months.map(m => `<div class="vt-month${m.isCurrent?' curr':''}" style="width:${VT_MONTH_WIDTH}px">${m.label}</div>`).join('')}
+            ${todayLeft !== null ? `<div class="vt-today label" style="left:${todayLeft}px"></div>` : ''}
+          </div>
+
+          <!-- User rows -->
+          ${userRows.length === 0
+            ? `<div class="vt-corner" style="height:60px"></div><div class="vt-empty-row" style="width:${trackWidth}px">Sin usuarios en el equipo todavía.</div>`
+            : userRows.map(r => {
+                const avInner = r.u.photo ? `<img src="${r.u.photo}" alt="">` : r.u.name.charAt(0).toUpperCase();
+                return `
+                  <div class="vt-user">
+                    <div class="vt-av" style="background:${r.u.color}">${avInner}</div>
+                    <div class="vt-uname">${r.u.name.split(' ')[0]}</div>
+                  </div>
+                  <div class="vt-track" style="--m-width:${VT_MONTH_WIDTH}px;width:${trackWidth}px">
+                    ${r.vacs.map(v => `<div class="vt-bar" style="left:${v.left}px;width:${v.width}px;background:${v.color}" title="${r.u.name}\n${v.label}">${v.days >= 3 ? v.days + 'd' : ''}</div>`).join('')}
+                    ${todayLeft !== null ? `<div class="vt-today" style="left:${todayLeft}px"></div>` : ''}
+                  </div>
+                `;
+              }).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="vt-legend-hint">Tocá una barra para ver el detalle · Color = avatar del usuario</div>
+  `;
+
+  el.innerHTML = html;
+
+  // Auto-scroll a "hoy" en el primer render
+  setTimeout(() => {
+    const sc = document.getElementById('vt-scroll');
+    if (sc && todayLeft !== null) {
+      sc.scrollLeft = Math.max(0, todayLeft + 78 - sc.clientWidth / 2);
+    }
+  }, 50);
+}
+
+function vtNav(dir) {
+  if (!vacTimelineStart) return;
+  vacTimelineStart = new Date(vacTimelineStart);
+  vacTimelineStart.setMonth(vacTimelineStart.getMonth() + dir);
+  renderVac();
+}
+
+function vtToday() {
+  vacTimelineStart = new Date(now.getFullYear(), now.getMonth(), 1);
+  renderVac();
 }
 
 // ══════════════════════════════════════════

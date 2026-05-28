@@ -2,9 +2,16 @@
 <html lang="es">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Team Days">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#070D1F">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icon-apple.png">
+<link rel="icon" type="image/svg+xml" href="icon.svg">
+<link rel="icon" type="image/png" sizes="192x192" href="icon-192.png">
 <title>Team Days</title>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-database-compat.js"></script>
@@ -260,6 +267,24 @@ select.ifield{cursor:pointer}
 .empty{display:flex;flex-direction:column;align-items:center;gap:8px;padding:36px 20px;color:var(--text2)}
 .empty-ico{font-size:38px}
 .empty-txt{font-size:13px;text-align:center;line-height:1.5}
+
+/* ── PWA: banner de permiso de notificaciones + instalación ── */
+.pwa-banner{display:none;position:fixed;left:50%;top:14px;transform:translateX(-50%);background:linear-gradient(135deg,#1F2937,#111827);border:1px solid rgba(240,180,41,0.35);border-radius:14px;padding:12px 14px;box-shadow:var(--shadow);z-index:150;max-width:380px;width:calc(100% - 24px);align-items:center;gap:11px;color:var(--text)}
+.pwa-banner.show{display:flex}
+.pwa-banner-icon{width:36px;height:36px;border-radius:10px;background:rgba(240,180,41,0.18);color:var(--gold);display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.pwa-banner-body{flex:1;min-width:0}
+.pwa-banner-title{font-size:13px;font-weight:700;line-height:1.3}
+.pwa-banner-sub{font-size:11px;color:var(--text2);margin-top:2px;line-height:1.4}
+.pwa-banner-actions{display:flex;flex-direction:column;gap:5px;flex-shrink:0}
+.pwa-banner-btn{background:var(--gold);color:#000;border:none;border-radius:8px;padding:6px 11px;font-size:11px;font-weight:700;cursor:pointer}
+.pwa-banner-btn.dismiss{background:transparent;color:var(--text2);font-weight:500}
+
+/* Safe area insets para PWA en iOS (notch / dynamic island) */
+@supports (padding: env(safe-area-inset-top)) {
+  #app{padding-top:env(safe-area-inset-top);padding-bottom:env(safe-area-inset-bottom)}
+  .pwa-banner{top:calc(14px + env(safe-area-inset-top))}
+  .toast,.toast-rich{top:calc(14px + env(safe-area-inset-top))}
+}
 
 /* ── SCROLLBAR ── */
 ::-webkit-scrollbar{width:3px}
@@ -533,6 +558,12 @@ select.ifield{cursor:pointer}
       <button class="btn btn-ghost" id="btn-admin-toggle" onclick="closeModal('modal-user');toggleAdminMode()" style="display:flex;align-items:center;justify-content:center;gap:7px">
         👑 Activar modo administrador
       </button>
+      <button class="btn btn-ghost" id="btn-install-app" onclick="manualInstall()" style="display:none;align-items:center;justify-content:center;gap:7px">
+        📲 Instalar app
+      </button>
+      <button class="btn btn-ghost" id="btn-enable-notif" onclick="manualEnableNotifications()" style="display:none;align-items:center;justify-content:center;gap:7px">
+        🔔 Activar notificaciones
+      </button>
     </div>
   </div>
 </div>
@@ -568,6 +599,19 @@ select.ifield{cursor:pointer}
       <button class="btn btn-ghost" onclick="closeModal('modal-edit-profile')">Cancelar</button>
       <button class="btn btn-gold" onclick="saveProfile()">Guardar</button>
     </div>
+  </div>
+</div>
+
+<!-- ═══ PWA Banner (permiso notif / instalar app) ═══ -->
+<div class="pwa-banner" id="pwa-banner">
+  <div class="pwa-banner-icon" id="pwa-banner-icon">🔔</div>
+  <div class="pwa-banner-body">
+    <div class="pwa-banner-title" id="pwa-banner-title"></div>
+    <div class="pwa-banner-sub" id="pwa-banner-sub"></div>
+  </div>
+  <div class="pwa-banner-actions">
+    <button class="pwa-banner-btn" id="pwa-banner-yes"></button>
+    <button class="pwa-banner-btn dismiss" onclick="dismissPwaBanner()">Ahora no</button>
   </div>
 </div>
 
@@ -948,6 +992,8 @@ function enterApp() {
   lastSeenTs = stored ? parseInt(stored, 10) : 0;
   subscribeData();
   subscribeActivity();
+  // Pedir permiso de notif después de 6 segundos (no intrusivo)
+  setTimeout(() => suggestNotificationPermission(), 6000);
 }
 
 // ══════════════════════════════════════════
@@ -1579,6 +1625,177 @@ function showUserMenuData() {
       ? '🔓 Desactivar modo administrador'
       : '👑 Activar modo administrador';
   }
+  // Botón "Instalar app" — si hay prompt pendiente, o si es iOS Safari, y no está ya instalada
+  const installBtn = document.getElementById('btn-install-app');
+  if (installBtn) {
+    const isStandalone = window.matchMedia?.('(display-mode: standalone)').matches || window.navigator.standalone;
+    const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+    installBtn.style.display = (!isStandalone && (deferredInstallPrompt || isIOS)) ? 'flex' : 'none';
+  }
+  // Botón "Activar notificaciones" — solo si permission es default
+  const notifBtn = document.getElementById('btn-enable-notif');
+  if (notifBtn) {
+    notifBtn.style.display = ('Notification' in window && Notification.permission === 'default') ? 'flex' : 'none';
+  }
+}
+
+async function manualInstall() {
+  closeModal('modal-user');
+  if (deferredInstallPrompt) {
+    deferredInstallPrompt.prompt();
+    const { outcome } = await deferredInstallPrompt.userChoice;
+    deferredInstallPrompt = null;
+    if (outcome === 'accepted') toast('¡App instalada! 🎉', 's');
+    return;
+  }
+  // Detectar iOS para mostrar instrucciones manuales
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+  if (isIOS) {
+    alert('Para instalar en iPhone:\n\n1. Tocá el botón Compartir (↑) abajo en Safari\n2. Bajá y tocá "Agregar a inicio"\n3. Tocá "Agregar" arriba a la derecha\n\nVa a aparecer el ícono en tu pantalla como una app.');
+  } else {
+    toast('Tu navegador no soporta instalación', 'w');
+  }
+}
+
+async function manualEnableNotifications() {
+  closeModal('modal-user');
+  if (!('Notification' in window)) { toast('Tu navegador no soporta notificaciones', 'e'); return; }
+  const result = await Notification.requestPermission();
+  if (result === 'granted')  toast('Notificaciones activadas ✓', 's');
+  else if (result === 'denied') toast('Bloqueadas — activá en config del navegador', 'w');
+}
+
+// ══════════════════════════════════════════
+//  PWA: Service Worker + Install + Native Notifications
+// ══════════════════════════════════════════
+let deferredInstallPrompt = null;
+let swReg = null;
+
+// Registrar Service Worker (silencioso en background)
+function registerServiceWorker() {
+  if (!('serviceWorker' in navigator)) return;
+  // Solo en https o localhost
+  if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
+  navigator.serviceWorker.register('sw.js').then(reg => {
+    swReg = reg;
+    // Si hay update disponible, aplicarlo
+    reg.addEventListener('updatefound', () => {
+      const nw = reg.installing;
+      if (!nw) return;
+      nw.addEventListener('statechange', () => {
+        if (nw.state === 'installed' && navigator.serviceWorker.controller) {
+          // Update silencioso — la próxima recarga aplica
+          console.log('App actualizada, recargá para ver cambios');
+        }
+      });
+    });
+  }).catch(e => console.warn('SW falló:', e.message));
+}
+
+// Detectar evento de installable
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredInstallPrompt = e;
+  // Mostrar banner ofreciendo instalar después de unos segundos en el app
+  setTimeout(() => { if (me) suggestInstall(); }, 8000);
+});
+
+// ── Banner inteligente: pide permiso de notif o sugiere instalar ──
+function suggestNotificationPermission() {
+  if (!('Notification' in window)) return;
+  if (Notification.permission !== 'default') return;
+  if (lsGet('pwa_notif_asked')) return;
+
+  showPwaBanner({
+    icon: '🔔',
+    title: 'Activá las notificaciones',
+    sub: 'Te avisamos cuando el jefe autoriza tus compensatorios o cuando alguien del equipo carga vacaciones.',
+    actionLabel: 'Activar',
+    onAccept: async () => {
+      lsSet('pwa_notif_asked', '1');
+      try {
+        const result = await Notification.requestPermission();
+        if (result === 'granted') toast('Notificaciones activadas ✓', 's');
+        else if (result === 'denied') toast('Notificaciones bloqueadas — podés activarlas en config del navegador', 'w');
+      } catch (e) { console.warn(e); }
+      hidePwaBanner();
+    }
+  });
+}
+
+function suggestInstall() {
+  if (lsGet('pwa_install_asked')) return;
+  if (!deferredInstallPrompt) return;
+
+  showPwaBanner({
+    icon: '📲',
+    title: 'Instalá Team Days en tu celular',
+    sub: 'Accedé desde el ícono de la pantalla principal, sin necesidad de abrir el navegador.',
+    actionLabel: 'Instalar',
+    onAccept: async () => {
+      lsSet('pwa_install_asked', '1');
+      if (deferredInstallPrompt) {
+        deferredInstallPrompt.prompt();
+        const { outcome } = await deferredInstallPrompt.userChoice;
+        deferredInstallPrompt = null;
+        if (outcome === 'accepted') toast('¡App instalada! 🎉', 's');
+      }
+      hidePwaBanner();
+    }
+  });
+}
+
+// Renderiza el banner con los valores que le pasemos
+let pwaBannerAcceptHandler = null;
+function showPwaBanner({ icon, title, sub, actionLabel, onAccept }) {
+  document.getElementById('pwa-banner-icon').textContent  = icon;
+  document.getElementById('pwa-banner-title').textContent = title;
+  document.getElementById('pwa-banner-sub').textContent   = sub;
+  document.getElementById('pwa-banner-yes').textContent   = actionLabel;
+  pwaBannerAcceptHandler = onAccept;
+  document.getElementById('pwa-banner-yes').onclick = () => onAccept?.();
+  document.getElementById('pwa-banner').classList.add('show');
+}
+
+function hidePwaBanner() {
+  document.getElementById('pwa-banner').classList.remove('show');
+}
+
+function dismissPwaBanner() {
+  // Si era el de notif, marcar como visto para no molestar más por un rato
+  if (document.getElementById('pwa-banner-title').textContent.includes('notificaciones')) {
+    lsSet('pwa_notif_asked', '1');
+  }
+  if (document.getElementById('pwa-banner-title').textContent.includes('Instalá')) {
+    lsSet('pwa_install_asked', '1');
+  }
+  hidePwaBanner();
+}
+
+// ── Mostrar notificación nativa del SO cuando llega evento relevante (y la pestaña no está visible) ──
+function showNativeNotification(ev) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return;
+  // Solo mostrar si la pestaña no está visible (sino el toast in-app es suficiente)
+  if (document.visibilityState === 'visible' && document.hasFocus()) return;
+  const cfg = NOTIF_TYPES[ev.type];
+  if (!cfg) return;
+  const title = cfg.title(ev);
+  const body  = cfg.sub(ev);
+  const opts = {
+    body,
+    icon: 'icon-192.png',
+    badge: 'icon-192.png',
+    tag: ev.id,
+    renotify: false,
+    requireInteraction: false,
+    data: { eventId: ev.id }
+  };
+  // Preferir mostrar vía service worker (mejor en mobile / persistente)
+  if (swReg?.showNotification) {
+    swReg.showNotification(title, opts).catch(() => new Notification(title, opts));
+  } else {
+    new Notification(title, opts);
+  }
 }
 
 // ══════════════════════════════════════════
@@ -1684,6 +1901,7 @@ function subscribeActivity() {
     if (isRelevant(ev) && ev.ts > lastSeenTs) {
       showRichToast(ev);
       shakeBell();
+      showNativeNotification(ev); // SO si la app no está visible
     }
     // Re-render del panel si está abierto
     if (document.getElementById('modal-notif').classList.contains('open')) renderNotifications();
@@ -1843,6 +2061,7 @@ function toast(msg, type='') {
 // ══════════════════════════════════════════
 //  START
 // ══════════════════════════════════════════
+registerServiceWorker();
 boot();
 </script>
 </body>

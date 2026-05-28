@@ -341,7 +341,7 @@ select.ifield{cursor:pointer}
         <div class="photo-letter" id="photo-letter">?</div>
         <div class="photo-edit-badge">📷</div>
       </div>
-      <input type="file" id="photo-input" accept="image/*" capture="user" style="display:none" onchange="handlePhotoSelect(event)">
+      <input type="file" id="photo-input" accept="image/*" style="display:none" onchange="handlePhotoSelect(event)">
       <div style="font-size:11px;color:var(--text3);margin-top:6px">Tocá para agregar foto (opcional)</div>
     </div>
 
@@ -623,7 +623,7 @@ select.ifield{cursor:pointer}
           <div class="photo-letter" id="ep-photo-letter">?</div>
           <div class="photo-edit-badge">📷</div>
         </div>
-        <input type="file" id="ep-photo-input" accept="image/*" capture="user" style="display:none" onchange="handleEditPhotoSelect(event)">
+        <input type="file" id="ep-photo-input" accept="image/*" style="display:none" onchange="handleEditPhotoSelect(event)">
         <div style="display:flex;gap:8px;margin-top:8px">
           <button type="button" class="btn btn-ghost btn-sm" onclick="document.getElementById('ep-photo-input').click()">Cambiar foto</button>
           <button type="button" class="btn btn-ghost btn-sm" onclick="removeEditPhoto()" id="ep-remove-photo" style="display:none">Quitar</button>
@@ -1921,25 +1921,49 @@ async function manualEnableNotifications() {
 let deferredInstallPrompt = null;
 let swReg = null;
 
-// Registrar Service Worker (silencioso en background)
+// Registrar Service Worker con auto-update
 function registerServiceWorker() {
   if (!('serviceWorker' in navigator)) return;
-  // Solo en https o localhost
   if (location.protocol !== 'https:' && location.hostname !== 'localhost' && location.hostname !== '127.0.0.1') return;
-  navigator.serviceWorker.register('sw.js').then(reg => {
+
+  // updateViaCache: 'none' → el navegador SIEMPRE pide sw.js fresco (no cachea)
+  navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(reg => {
     swReg = reg;
-    // Si hay update disponible, aplicarlo
+
+    // Detectar cuando una nueva versión está instalada y esperando activarse
     reg.addEventListener('updatefound', () => {
-      const nw = reg.installing;
-      if (!nw) return;
-      nw.addEventListener('statechange', () => {
-        if (nw.state === 'installed' && navigator.serviceWorker.controller) {
-          // Update silencioso — la próxima recarga aplica
-          console.log('App actualizada, recargá para ver cambios');
+      const newSW = reg.installing;
+      if (!newSW) return;
+      newSW.addEventListener('statechange', () => {
+        if (newSW.state === 'installed' && navigator.serviceWorker.controller) {
+          // Ya hay un SW activo → tenemos una nueva versión esperando
+          console.log('[SW] Nueva versión instalada, activando...');
+          newSW.postMessage({ type: 'SKIP_WAITING' });
         }
       });
     });
-  }).catch(e => console.warn('SW falló:', e.message));
+
+    // Poll cada 60s para chequear si hay nueva versión deployada
+    setInterval(() => {
+      reg.update().catch(() => {});
+    }, 60 * 1000);
+
+    // También chequear cuando el usuario vuelve a la app (foco/tab visible)
+    document.addEventListener('visibilitychange', () => {
+      if (!document.hidden) reg.update().catch(() => {});
+    });
+  }).catch(e => console.warn('[SW] Error en registro:', e.message));
+
+  // Cuando un nuevo SW toma control → recargar UNA SOLA VEZ
+  let reloading = false;
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (reloading) return;
+    reloading = true;
+    console.log('[SW] Nuevo controlador activo → recargando');
+    // Toast amigable antes de recargar (visible si la pestaña está abierta)
+    try { toast('🔄 Actualizando a nueva versión...', 's'); } catch(e) {}
+    setTimeout(() => location.reload(), 900);
+  });
 }
 
 // Detectar evento de installable
@@ -1956,10 +1980,15 @@ function suggestNotificationPermission() {
   if (Notification.permission !== 'default') return;
   if (lsGet('pwa_notif_asked')) return;
 
+  // Texto distinto según el rol
+  const sub = me?.isAdmin
+    ? `Te avisamos cuando un usuario te solicita un compensatorio, lo cancela, o carga vacaciones.`
+    : `Te avisamos cuando ${bossName || 'el jefe'} autoriza o deniega tus compensatorios, o cuando el equipo carga vacaciones.`;
+
   showPwaBanner({
     icon: '🔔',
     title: 'Activá las notificaciones',
-    sub: 'Te avisamos cuando el jefe autoriza tus compensatorios o cuando alguien del equipo carga vacaciones.',
+    sub,
     actionLabel: 'Activar',
     onAccept: async () => {
       lsSet('pwa_notif_asked', '1');

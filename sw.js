@@ -1,8 +1,13 @@
 // ══════════════════════════════════════════
 //  Team Days — Service Worker
-//  Versión cache-first con fallback a network
+//  Estrategia: network-first para HTML, stale-while-revalidate para assets
+//  Auto-actualización: cualquier cambio en este file dispara nueva versión
 // ══════════════════════════════════════════
-const CACHE_NAME = 'team-days-v1';
+
+// BUILD: 2026-05-28T20:00:00  ← este timestamp se reescribe en cada deploy
+const BUILD = '2026-05-28T10:35:26';
+const CACHE_NAME = `team-days-${BUILD}`;
+
 const ASSETS = [
   './',
   './index.html',
@@ -13,64 +18,82 @@ const ASSETS = [
   './icon-apple.png'
 ];
 
-// Install: cachear assets estáticos
+// ── INSTALL: cachear assets y forzar activación inmediata ──
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then(cache => cache.addAll(ASSETS))
-      .then(() => self.skipWaiting())
+      .then(() => self.skipWaiting()) // activar nueva versión sin esperar
   );
 });
 
-// Activate: limpiar caches viejos
+// ── ACTIVATE: limpiar caches viejos y tomar control inmediatamente ──
 self.addEventListener('activate', event => {
   event.waitUntil(
-    caches.keys().then(keys =>
-      Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    ).then(() => self.clients.claim())
+    caches.keys()
+      .then(keys => Promise.all(
+        keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k))
+      ))
+      .then(() => self.clients.claim())
   );
 });
 
-// Fetch: para assets de la app, cache-first.
-// Para Firebase y otros dominios externos, siempre red (no cachear).
+// ── FETCH: network-first para HTML, stale-while-revalidate para assets ──
 self.addEventListener('fetch', event => {
   const url = new URL(event.request.url);
-  // No cachear pedidos a Firebase ni externos
+  // Ignorar pedidos a Firebase y otros orígenes
   if (url.origin !== location.origin) return;
-  // No cachear método POST/PUT/DELETE
   if (event.request.method !== 'GET') return;
 
-  event.respondWith(
-    caches.match(event.request).then(cached => {
-      if (cached) return cached;
-      return fetch(event.request).then(res => {
-        // Actualizar cache silenciosamente para próximas visitas
-        if (res && res.status === 200) {
-          const clone = res.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
-        }
-        return res;
-      }).catch(() => caches.match('./index.html'));
-    })
-  );
+  const isHTML = event.request.mode === 'navigate'
+              || url.pathname.endsWith('.html')
+              || url.pathname === '/'
+              || url.pathname.endsWith('/');
+
+  if (isHTML) {
+    // ── Network-first: siempre intenta traer el HTML fresco ──
+    event.respondWith(
+      fetch(event.request)
+        .then(res => {
+          if (res && res.status === 200) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          }
+          return res;
+        })
+        .catch(() => caches.match(event.request).then(c => c || caches.match('./index.html')))
+    );
+  } else {
+    // ── Stale-while-revalidate: sirve del cache, actualiza en background ──
+    event.respondWith(
+      caches.match(event.request).then(cached => {
+        const networkFetch = fetch(event.request).then(res => {
+          if (res && res.status === 200) {
+            const clone = res.clone();
+            caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone));
+          }
+          return res;
+        }).catch(() => null);
+        return cached || networkFetch;
+      })
+    );
+  }
 });
 
-// Click en notificación → enfocar / abrir la app
+// ── Click en notificación → enfocar / abrir la app ──
 self.addEventListener('notificationclick', event => {
   event.notification.close();
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then(clientsList => {
-      // Si la app ya está abierta, enfocarla
       for (const client of clientsList) {
         if ('focus' in client) return client.focus();
       }
-      // Si no, abrirla
       if (self.clients.openWindow) return self.clients.openWindow('./');
     })
   );
 });
 
-// Mensaje desde la app — sirve para forzar update o disparar notificación
+// ── Mensaje desde la app: SKIP_WAITING activa el nuevo SW inmediatamente ──
 self.addEventListener('message', event => {
   if (event.data?.type === 'SKIP_WAITING') self.skipWaiting();
 });
